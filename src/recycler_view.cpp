@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/core/object.hpp>
+#include <godot_cpp/variant/color.hpp>
 
 namespace godot {
 
@@ -91,6 +92,8 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_item_decoration_count"), &RecyclerView::get_item_decoration_count);
 	ClassDB::bind_method(D_METHOD("get_item_insets", "position"), &RecyclerView::get_item_insets);
 	ClassDB::bind_method(D_METHOD("get_decorated_item_rect", "position"), &RecyclerView::get_decorated_item_rect);
+	ClassDB::bind_method(D_METHOD("set_item_animator", "animator"), &RecyclerView::set_item_animator);
+	ClassDB::bind_method(D_METHOD("get_item_animator"), &RecyclerView::get_item_animator);
 
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_IDLE", SCROLL_STATE_IDLE);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
@@ -114,6 +117,9 @@ RecyclerView::RecyclerView() {
 }
 
 RecyclerView::~RecyclerView() {
+	if (m_item_animator.is_valid()) {
+		m_item_animator->clear();
+	}
 	detach_from_adapter();
 	// Cached/scrap/pool views are detached from this RV (removed from the tree),
 	// so the Node teardown never deletes them. Free them here or nested RVs that
@@ -261,6 +267,9 @@ void RecyclerView::set_vertical_wheel_scrolls_horizontal(bool p_enabled) {
 
 void RecyclerView::_process(double p_delta) {
 	m_elapsed_ms += p_delta * 1000.0;
+	if (m_item_animator.is_valid() && m_item_animator->is_running()) {
+		m_item_animator->animate_step(p_delta);
+	}
 	if (m_scroll_state != SCROLL_STATE_SETTLING) {
 		return;
 	}
@@ -642,6 +651,94 @@ void RecyclerView::clear_on_scroll_listeners() {
 	m_scroll_listeners.clear();
 }
 
+void RecyclerView::set_item_animator(const Ref<ItemAnimator> &p_animator) {
+	m_item_animator = p_animator;
+	if (m_item_animator.is_valid()) {
+		m_item_animator->set_recycler_view(this);
+	}
+}
+
+Vector2 RecyclerView::get_layout_position(const Ref<ViewHolder> &p_holder) {
+	if (m_layout.is_null() || p_holder.is_null()) {
+		return Vector2();
+	}
+	if (p_holder->get_position() < 0) {
+		// A removed holder has NO_POSITION; resolve to its current position
+		// instead of (0,0) so no lingering animation drags it to the origin.
+		if (p_holder->get_control() != nullptr) {
+			return p_holder->get_control()->get_position();
+		}
+		return Vector2();
+	}
+	const Rect2 rect = m_layout->get_item_rect(this, p_holder->get_position());
+	const Vector4 insets = get_item_insets(p_holder->get_position());
+	return rect.position + Vector2(insets.x, insets.y);
+}
+
+void RecyclerView::recycle_removed(const Ref<ViewHolder> &p_holder) {
+	Control *control = p_holder->get_control();
+	if (control != nullptr && control->get_parent() == this) {
+		remove_child(control);
+	}
+	m_recycler->scrap_view(p_holder);
+}
+
+void RecyclerView::capture_pre_positions() {
+	m_pre_positions.clear();
+	m_updated_holders.clear();
+	for (int i = 0; i < m_children.size(); i++) {
+		Ref<ViewHolder> holder = m_children[i];
+		Vector2 position;
+		if (holder->get_control() != nullptr) {
+			position = holder->get_control()->get_position();
+		}
+		m_pre_positions.push_back({ holder, position });
+	}
+}
+
+bool RecyclerView::in_pre_positions(const Ref<ViewHolder> &p_holder) const {
+	for (int i = 0; i < m_pre_positions.size(); i++) {
+		if (m_pre_positions[i].holder == p_holder) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void RecyclerView::dispatch_animations() {
+	for (int i = 0; i < m_pre_positions.size(); i++) {
+		PrePosition &pre = m_pre_positions.write[i];
+		if (m_removed_holders.has(pre.holder)) {
+			// Data removed this cycle: fade the kept control out, recycle after.
+			m_item_animator->animate_remove(pre.holder, Rect2(pre.position, Vector2()), Rect2());
+		} else if (m_children.has(pre.holder)) {
+			// Persisted: slide if it moved, pulse if it was rebound. Holders
+			// merely recycled out of the visible range are skipped entirely.
+			Vector2 now = pre.position;
+			if (pre.holder->get_control() != nullptr) {
+				now = pre.holder->get_control()->get_position();
+			}
+			if (m_updated_holders.has(pre.holder)) {
+				m_item_animator->animate_change(pre.holder, Rect2(pre.position, Vector2()), Rect2(now, Vector2()));
+			} else if (now != pre.position) {
+				m_item_animator->animate_move(pre.holder, Rect2(pre.position, Vector2()), Rect2(now, Vector2()));
+			}
+		}
+	}
+	// New holders this cycle: fade in.
+	for (int i = 0; i < m_children.size(); i++) {
+		Ref<ViewHolder> holder = m_children[i];
+		if (!in_pre_positions(holder)) {
+			Vector2 position;
+			if (holder->get_control() != nullptr) {
+				position = holder->get_control()->get_position();
+			}
+			m_item_animator->animate_add(holder, Rect2(), Rect2(position, Vector2()));
+		}
+	}
+	m_pre_positions.clear();
+}
+
 void RecyclerView::set_adapter(const Ref<Adapter> &p_adapter) {
 	detach_from_adapter();
 	m_adapter = p_adapter;
@@ -722,6 +819,10 @@ Ref<ViewHolder> RecyclerView::get_view_for_position(int p_position) {
 }
 
 void RecyclerView::recycle_view(const Ref<ViewHolder> &p_holder, int p_position) {
+	// Never recycle a holder whose item animation is still running.
+	if (m_item_animator.is_valid() && m_item_animator->is_animating(p_holder)) {
+		return;
+	}
 	m_recycler->recycle_view(p_holder, p_position);
 }
 
@@ -731,12 +832,20 @@ void RecyclerView::add_item_view(const Ref<ViewHolder> &p_holder) {
 		// The item root passes events through so the RecyclerView can scroll;
 		// nested Controls keep their own mouse filter (their choice to interact).
 		control->set_mouse_filter(MOUSE_FILTER_PASS);
+		// A holder reused after a remove fade-out has a faded alpha; reset it.
+		control->set_modulate(Color(1, 1, 1, 1));
 		add_child(control);
 	}
 	m_children.push_back(p_holder);
 }
 
 void RecyclerView::remove_item_view(const Ref<ViewHolder> &p_holder) {
+	// Keep animating holders attached: removing them would orphan their control
+	// (the recycler skip below can't cache them), and the dispatch would then
+	// misread them as removed. They are recycled once their animation finishes.
+	if (m_item_animator.is_valid() && m_item_animator->is_animating(p_holder)) {
+		return;
+	}
 	for (int i = 0; i < m_children.size(); i++) {
 		if (m_children[i] == p_holder) {
 			m_children.remove_at(i);
@@ -893,13 +1002,32 @@ void RecyclerView::process_pending_updates() {
 	m_recycler->offset_position_records_for_ops(m_adapter_helper->get_pending_ops());
 	m_adapter_helper->consume_updates_in_one_pass(m_children);
 
-	// Drop holders whose item was removed; keep them in the changed scrap so the
-	// same view can be reused within this layout cycle.
+	// FLAG_UPDATE is set here (and cleared by the rebind below), so capture the
+	// updated holders for the change animation before the rebind.
+	if (m_item_animator.is_valid()) {
+		m_updated_holders.clear();
+		for (int i = 0; i < m_children.size(); i++) {
+			if (m_children[i]->is_updated()) {
+				m_updated_holders.push_back(m_children[i]);
+			}
+		}
+	}
+
+	// Drop holders whose item was removed. With an animator the control stays in
+	// the tree for the fade-out (recycled on animation completion); without one
+	// the holder goes straight to the changed scrap for reuse this cycle.
+	m_removed_holders.clear();
 	for (int i = m_children.size() - 1; i >= 0; i--) {
 		Ref<ViewHolder> holder = m_children[i];
 		if (holder->is_removed()) {
-			remove_item_view(holder);
-			m_recycler->scrap_view(holder);
+			if (m_item_animator.is_valid()) {
+				m_removed_holders.push_back(holder);
+				// Keep the control in the tree for the fade-out.
+				m_children.remove_at(i);
+			} else {
+				remove_item_view(holder);
+				m_recycler->scrap_view(holder);
+			}
 		}
 	}
 
@@ -921,10 +1049,20 @@ void RecyclerView::layout_children() {
 		return;
 	}
 	m_layout_in_progress = true;
+	// Two-phase layout for item animations: capture pre-update positions, then
+	// dispatch move/add/remove/change after the post layout. Only incremental
+	// notify_* calls animate; plain scrolls/resizes have no pending updates.
+	const bool has_updates = m_adapter_helper->has_pending_updates();
+	if (has_updates && m_item_animator.is_valid()) {
+		capture_pre_positions();
+	}
 	process_pending_updates();
 	m_state->set_item_count(m_adapter->get_item_count());
 	m_layout->set_recycler_view(this);
 	m_layout->on_layout_children(this, m_state.ptr());
+	if (has_updates && m_item_animator.is_valid()) {
+		dispatch_animations();
+	}
 	m_recycler->flush_scrap_to_pool();
 	for (int i = 0; i < m_children.size(); i++) {
 		m_children[i]->clear_old_position();
@@ -938,6 +1076,9 @@ void RecyclerView::request_layout() {
 }
 
 void RecyclerView::free_items() {
+	if (m_item_animator.is_valid()) {
+		m_item_animator->clear();
+	}
 	for (int i = m_children.size() - 1; i >= 0; i--) {
 		Control *control = m_children[i]->get_control();
 		m_children.remove_at(i);

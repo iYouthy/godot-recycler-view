@@ -3,6 +3,7 @@
 #include "adapter.h"
 #include "adapter_helper.h"
 #include "fling_scroller.h"
+#include "item_animator.h"
 #include "item_decoration.h"
 #include "layout_manager.h"
 #include "recycler.h"
@@ -93,6 +94,15 @@ public:
 	void remove_on_scroll_listener(const Ref<ScrollListener> &p_listener);
 	void clear_on_scroll_listeners();
 
+	// Item animations after incremental updates (insert/remove/move/change).
+	void set_item_animator(const Ref<ItemAnimator> &p_animator);
+	Ref<ItemAnimator> get_item_animator() const { return m_item_animator; }
+	// The animator re-queries a holder's layout target here each frame so a
+	// move slides to the live layout position (it follows scrolls).
+	Vector2 get_layout_position(const Ref<ViewHolder> &p_holder);
+	// Called by the animator when a removed holder finished fading out.
+	void recycle_removed(const Ref<ViewHolder> &p_holder);
+
 	// In a horizontal layout, whether the vertical mouse wheel also drives
 	// horizontal scrolling (default true). When false, only WHEEL_LEFT/RIGHT
 	// (touchpad swipe, Shift+wheel) scroll horizontally.
@@ -143,6 +153,24 @@ private:
 	// would be stale). Mirrors Android's cancelled-gesture behavior.
 	void cancel_drag();
 	void stop_fling();
+
+	// Item animation: two-phase layout. Captures each visible holder's position
+	// before pending updates are consumed, then dispatches move/add/remove/
+	// change animations after the post layout. FLAG_UPDATE is set during the
+	// consume step (and cleared by the rebind), so the updated set is collected
+	// there, not during the pre-capture.
+	struct PrePosition {
+		Ref<ViewHolder> holder;
+		Vector2 position;
+	};
+	Vector<PrePosition> m_pre_positions;
+	Vector<Ref<ViewHolder>> m_updated_holders;
+	// Holders whose data was removed this cycle (distinct from holders merely
+	// recycled out of the visible range by the layout).
+	Vector<Ref<ViewHolder>> m_removed_holders;
+	void capture_pre_positions();
+	void dispatch_animations();
+	bool in_pre_positions(const Ref<ViewHolder> &p_holder) const;
 	bool try_start_fling(float p_velocity);
 
 	// Nested scroll: cascade forwarding and ancestor lookup.
@@ -172,6 +200,7 @@ private:
 	Ref<AdapterDataObserver> m_data_observer;
 	Ref<AdapterHelper> m_adapter_helper;
 	Vector<Ref<ItemDecoration>> m_decorations;
+	Ref<ItemAnimator> m_item_animator;
 
 	// Tracked child ViewHolders (in tree order), for recycling on scroll.
 	Vector<Ref<ViewHolder>> m_children;

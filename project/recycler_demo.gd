@@ -35,6 +35,7 @@ func _ready() -> void:
 	recycler_view.set_item_size(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
+	recycler_view.set_item_animator(DefaultItemAnimator.new())
 	_update_callback = AdapterListUpdateCallback.new()
 	_update_callback.set_adapter(_adapter)
 	counter_label.text = "created holders: %d" % _adapter.created

@@ -8,9 +8,11 @@
 #include "adapter.h"
 #include "adapter_helper.h"
 #include "adapter_list_update_callback.h"
+#include "default_item_animator.h"
 #include "diff_util.h"
 #include "example_class.h"
 #include "grid_layout_manager.h"
+#include "item_animator.h"
 #include "item_decoration.h"
 #include "layout_manager.h"
 #include "linear_layout_manager.h"
@@ -49,6 +51,10 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(GridLayoutManager);
 	GDREGISTER_CLASS(SpanSizeLookup);
 	GDREGISTER_CLASS(ItemDecoration);
+	// Not abstract: GDScript subclasses extend ItemAnimator directly, and a
+	// script cannot inherit from a class registered as abstract.
+	GDREGISTER_CLASS(ItemAnimator);
+	GDREGISTER_CLASS(DefaultItemAnimator);
 	// Not abstract: GDScript subclasses extend ScrollListener directly, and a
 	// script cannot inherit from a class registered as abstract.
 	GDREGISTER_CLASS(ScrollListener);
