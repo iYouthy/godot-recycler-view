@@ -1,0 +1,71 @@
+#pragma once
+
+#include "adapter.h"
+#include "recycled_view_pool.h"
+#include "update_op.h"
+#include "view_holder.h"
+
+#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/templates/vector.hpp>
+
+namespace godot {
+
+// Port of RecyclerView.Recycler (simplified core). Obtains ViewHolders for
+// positions (from the changed scrap, then the view cache, then the recycled
+// pool, then the adapter) and recycles them. The RecycledViewPool holds the
+// pool level; the view cache is a small bounded list keyed by layout position;
+// the changed scrap holds holders removed by an update within one layout cycle.
+class Recycler : public RefCounted {
+	GDCLASS(Recycler, RefCounted)
+
+protected:
+	static void _bind_methods();
+
+public:
+	void set_adapter(const Ref<Adapter> &p_adapter);
+	Ref<Adapter> get_adapter() const;
+
+	void set_view_cache_size(int p_size) { m_view_cache_max = p_size; }
+	int get_view_cache_size() const { return m_view_cache_max; }
+
+	// Obtains a holder for the given layout position, binding it if reused.
+	Ref<ViewHolder> get_view_for_position(int p_position);
+
+	// Returns a holder to the cache (if it fits) or the recycled pool.
+	void recycle_view(const Ref<ViewHolder> &p_holder, int p_position);
+
+	// Holds a holder removed by an update for the rest of the layout cycle.
+	void scrap_view(const Ref<ViewHolder> &p_holder);
+
+	// Releases every scrapped holder to the cache/pool (or frees its Control if
+	// the pool is full). Called at the end of a layout cycle.
+	void flush_scrap_to_pool();
+
+	// Applies adapter update ops to the positions of cached views so cache
+	// lookups stay consistent after data changes.
+	void offset_position_records_for_ops(const Vector<UpdateOp> &p_ops);
+
+	// Total number of ViewHolders currently held (cache + pool + scrap).
+	int get_recycled_view_count(int p_view_type) const;
+	int get_cached_view_count() const { return m_cached_views.size(); }
+	int get_changed_scrap_count() const { return m_changed_scrap.size(); }
+	int size() const;
+
+	void clear();
+
+	// Frees the Control of every held ViewHolder (test/teardown helper).
+	void free_all_views();
+
+private:
+	Ref<Adapter> m_adapter;
+	int m_view_cache_max = 2;
+	Vector<Ref<ViewHolder>> m_cached_views;
+	Vector<Ref<ViewHolder>> m_changed_scrap;
+	RecycledViewPool m_pool;
+	// Keeps the ViewHolders held by the pure pool alive (the pool stores opaque
+	// handles and does not participate in reference counting).
+	Vector<Ref<ViewHolder>> m_pool_holders;
+};
+
+} // namespace godot

@@ -35,6 +35,23 @@ Run the following command to download godot-cpp:
     git submodule update --init --recursive""")
     sys.exit(1)
 
+# Standalone unit test runner for the pure-algorithm layer (no Godot runtime).
+# Usage: scons tests=yes
+if ARGUMENTS.get("tests", "no") == "yes":
+    test_env = Environment(tools=["default"], PLATFORM="")
+    test_env.Append(CPPPATH=[
+        "godot-cpp/include",
+        "godot-cpp/gen/include",
+        "godot-cpp/gdextension",
+        "src/",
+        "tests/",
+    ])
+    test_env.Append(CXXFLAGS=["-std=c++17", "-O0", "-g"])
+    test_sources = Glob("tests/*.cpp") + ["src/diff_algo.cpp", "src/op_reorderer.cpp", "src/update_op_apply.cpp", "src/layout_math.cpp"]
+    runner = test_env.Program("tests/bin/test_runner", source=test_sources)
+    Default(runner)
+    Return()
+
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
 
 env.Append(CPPPATH=["src/"])

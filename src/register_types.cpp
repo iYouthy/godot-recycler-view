@@ -5,7 +5,22 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
+#include "adapter.h"
+#include "adapter_helper.h"
+#include "adapter_list_update_callback.h"
+#include "diff_util.h"
 #include "example_class.h"
+#include "grid_layout_manager.h"
+#include "item_decoration.h"
+#include "layout_manager.h"
+#include "linear_layout_manager.h"
+#include "list_update_callback.h"
+#include "recycler.h"
+#include "recycler_view.h"
+#include "sorted_list_gd.h"
+#include "span_size_lookup.h"
+#include "state.h"
+#include "view_holder.h"
 
 using namespace godot;
 
@@ -14,6 +29,26 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	GDREGISTER_CLASS(DiffUtil);
+	GDREGISTER_CLASS(DiffUtilCallback);
+	GDREGISTER_CLASS(DiffResult);
+	GDREGISTER_CLASS(ListUpdateCallback);
+	GDREGISTER_CLASS(BatchingListUpdateCallback);
+	GDREGISTER_CLASS(AdapterListUpdateCallback);
+	GDREGISTER_CLASS(AdapterHelper);
+	GDREGISTER_CLASS(SortedList);
+	GDREGISTER_CLASS(SortedListCallback);
+	GDREGISTER_CLASS(ViewHolder);
+	GDREGISTER_CLASS(Adapter);
+	GDREGISTER_CLASS(AdapterDataObserver);
+	GDREGISTER_CLASS(State);
+	GDREGISTER_CLASS(Recycler);
+	GDREGISTER_ABSTRACT_CLASS(LayoutManager);
+	GDREGISTER_CLASS(LinearLayoutManager);
+	GDREGISTER_CLASS(GridLayoutManager);
+	GDREGISTER_CLASS(SpanSizeLookup);
+	GDREGISTER_CLASS(ItemDecoration);
+	GDREGISTER_CLASS(RecyclerView);
 	GDREGISTER_CLASS(ExampleClass);
 }
 

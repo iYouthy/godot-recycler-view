@@ -83,3 +83,6 @@ mono_crash.*.json
 
 # gdUnit4 reports
 reports
+
+# Doctest runner binary
+tests/bin/
