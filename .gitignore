@@ -45,8 +45,41 @@ compile_commands.json
 .DS_Store
 
 # Jetbrains
-.idea/
+**/.idea/**
+!**/.idea/codeStyleSettings.xml
+!**/.idea/copyright
+!**/.idea/codeStyles
+!.idea/codeStyles/Project.xml
+!.idea/codeStyles/codeStyleConfig.xml
+!.idea/inspectionProfiles/Project_Default.xml
+!.idea/icon.svg
 
 # Cmake
 cmake-build*
 CMakeUserPresets.json
+
+# Godot 4.2+ specific ignores
+~*.dll
+
+# Godot 4+ specific ignores
+.godot/
+/android/
+.nomedia
+
+
+# Godot-specific ignores
+.import/
+export.cfg
+export_credentials.cfg
+*.tmp
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# gdUnit4 reports
+reports
