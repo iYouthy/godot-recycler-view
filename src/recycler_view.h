@@ -2,14 +2,18 @@
 
 #include "adapter.h"
 #include "adapter_helper.h"
+#include "fling_scroller.h"
 #include "item_decoration.h"
 #include "layout_manager.h"
 #include "recycler.h"
+#include "scroll_listener.h"
 #include "state.h"
+#include "velocity_tracker.h"
 #include "view_holder.h"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/input_event.hpp>
+#include <godot_cpp/classes/input_event_mouse_motion.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/math.hpp>
 #include <godot_cpp/variant/rect2.hpp>
@@ -32,7 +36,14 @@ public:
 	~RecyclerView() override;
 
 	void _gui_input(const Ref<InputEvent> &p_event) override;
+	void _process(double p_delta) override;
 	void _draw();
+
+	enum ScrollState {
+		SCROLL_STATE_IDLE = 0,
+		SCROLL_STATE_DRAGGING = 1,
+		SCROLL_STATE_SETTLING = 2,
+	};
 
 	void set_adapter(const Ref<Adapter> &p_adapter);
 	Ref<Adapter> get_adapter() const;
@@ -66,10 +77,21 @@ public:
 	int get_scroll_offset_horizontal() const { return m_scroll_offset_h; }
 	void set_scroll_offset(int p_offset);
 	void set_scroll_offset_horizontal(int p_offset);
-	void scroll_vertically(int p_delta);
-	void scroll_horizontally(int p_delta);
+	// Scrolls by a delta and returns the amount actually scrolled (0 when the
+	// layout cannot scroll or the offset is clamped). Dispatches on_scrolled.
+	int scroll_vertically(int p_delta);
+	int scroll_horizontally(int p_delta);
 	void scroll_along_axis(int p_delta);
 	Vector2 get_viewport_size() const;
+
+	// Scroll state machine (SCROLL_STATE_IDLE/DRAGGING/SETTLING) and the
+	// listener callbacks, mirroring RecyclerView.OnScrollListener.
+	int get_scroll_state() const { return m_scroll_state; }
+	// Aborts a running fling and returns to IDLE.
+	void stop_scroll();
+	void add_on_scroll_listener(const Ref<ScrollListener> &p_listener);
+	void remove_on_scroll_listener(const Ref<ScrollListener> &p_listener);
+	void clear_on_scroll_listeners();
 
 	// In a horizontal layout, whether the vertical mouse wheel also drives
 	// horizontal scrolling (default true). When false, only WHEEL_LEFT/RIGHT
@@ -82,6 +104,13 @@ public:
 	// Height of the item at the given position along the scroll axis: the
 	// adapter's variable height, or the default item size when not provided.
 	int get_item_height(int p_position) const;
+
+	// Drag plumbing used by nested RecyclerViews: when a child hands a
+	// perpendicular drag off to an ancestor RV (its axis isn't the dominant
+	// one), the child becomes a conduit that forwards motion/release here.
+	void begin_drag(const Ref<InputEventMouseMotion> &p_mm);
+	void continue_drag(const Ref<InputEventMouseMotion> &p_mm);
+	void end_drag();
 
 	// Item decorations (dividers, spacing).
 	void add_item_decoration(const Ref<ItemDecoration> &p_decor);
@@ -103,6 +132,39 @@ private:
 	void process_pending_updates();
 	void mark_data_changed();
 
+	// Scroll state machine internals.
+	int get_max_scroll_offset();
+	int get_max_scroll_offset_horizontal();
+	void set_scroll_state(int p_state);
+	void dispatch_scrolled(int p_dx, int p_dy);
+	void finish_drag();
+	// Ends a drag without flinging: used when a release outside the window is
+	// only detected later by a motion with the left button up (the velocity
+	// would be stale). Mirrors Android's cancelled-gesture behavior.
+	void cancel_drag();
+	void stop_fling();
+	bool try_start_fling(float p_velocity);
+
+	// Nested scroll: cascade forwarding and ancestor lookup.
+	RecyclerView *find_ancestor_recycler_view() const;
+	RecyclerView *find_ancestor_scrolling_axis(bool p_horizontal) const;
+	bool has_ancestor_scrolling_axis(bool p_horizontal) const;
+	void forward_vertical_scroll(int p_delta);
+	void forward_horizontal_scroll(int p_delta);
+	void forward_scroll_to_ancestor(int p_delta, bool p_horizontal);
+	void start_nested_fling(float p_velocity);
+	// Forwards a drag event to the RV that grabbed it, converting the event's
+	// position from this RV's local space into the receiver's.
+	void forward_event_to(RecyclerView *p_target, const Ref<InputEvent> &p_event);
+	bool forward_unowned_drag_event(const Ref<InputEvent> &p_event);
+
+	// Drag grab: when this RV owns a drag, ancestors route unowned drag events
+	// back to it, mirroring Android's sticky touch capture (Godot re-hit-tests
+	// every mouse event, so a drag leaving the RV would otherwise orphan it).
+	void set_drag_grabber(RecyclerView *p_grabber) { m_drag_grabber = p_grabber; }
+	void begin_drag_grabber_chain();
+	void clear_drag_grabber_chain();
+
 	Ref<Adapter> m_adapter;
 	Ref<LayoutManager> m_layout;
 	Ref<Recycler> m_recycler;
@@ -121,12 +183,30 @@ private:
 	int m_item_size = 64;
 	bool m_layout_in_progress = false;
 
+	// Scroll state machine (Android's SCROLL_STATE_IDLE/DRAGGING/SETTLING).
+	int m_scroll_state = SCROLL_STATE_IDLE;
+	Vector<Ref<ScrollListener>> m_scroll_listeners;
+	VelocityTracker m_velocity_tracker_v;
+	VelocityTracker m_velocity_tracker_h;
+	FlingScroller m_fling_v;
+	FlingScroller m_fling_h;
+	// Monotonic clock (ms) accumulated in _process, used to stamp drag samples.
+	double m_elapsed_ms = 0.0;
+	static constexpr float MIN_FLING_VELOCITY = 50.0f;
+
 	bool m_dragging = false;
 	int m_drag_start_mouse = 0;
 	int m_drag_start_mouse_x = 0;
 	int m_drag_start_scroll = 0;
 	int m_drag_start_scroll_h = 0;
 	bool m_drag_scrolled = false;
+	// Nested drag: when the dominant axis isn't this RV's and an ancestor
+	// scrolls it, the gesture is handed off and this RV becomes a conduit.
+	bool m_drag_handed_off = false;
+	RecyclerView *m_drag_handoff_target = nullptr;
+	// Descendant RV currently owning a drag; this RV forwards unowned drag
+	// events to it so the gesture survives the mouse leaving the child.
+	RecyclerView *m_drag_grabber = nullptr;
 	bool m_vertical_wheel_scrolls_horizontal = true;
 };
 

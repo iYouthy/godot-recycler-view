@@ -178,6 +178,12 @@ func test_release_outside_window_clears_drag() -> void:
 	# release event, so a stale drag must be cleared by the button mask on the
 	# next motion event. Otherwise re-entering the window without the button
 	# held keeps scrolling the list with the cursor.
+	# Headless starts with a 64x64 window, which cannot hit-test events beyond
+	# it. Grow it to the project's design size and pin the content scale to 1:1
+	# so synthetic event coordinates map directly to control space.
+	get_window().size = Vector2i(1920, 1080)
+	get_window().content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
 	var rv := RecyclerView.new()
 	rv.position = Vector2(0, 0)
 	rv.set_size(Vector2(200, 600))

@@ -47,7 +47,7 @@ if ARGUMENTS.get("tests", "no") == "yes":
         "tests/",
     ])
     test_env.Append(CXXFLAGS=["-std=c++17", "-O0", "-g"])
-    test_sources = Glob("tests/*.cpp") + ["src/diff_algo.cpp", "src/op_reorderer.cpp", "src/update_op_apply.cpp", "src/layout_math.cpp"]
+    test_sources = Glob("tests/*.cpp") + ["src/diff_algo.cpp", "src/op_reorderer.cpp", "src/update_op_apply.cpp", "src/layout_math.cpp", "src/fling_scroller.cpp", "src/velocity_tracker.cpp"]
     runner = test_env.Program("tests/bin/test_runner", source=test_sources)
     Default(runner)
     Return()

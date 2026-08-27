@@ -17,6 +17,7 @@
 #include "list_update_callback.h"
 #include "recycler.h"
 #include "recycler_view.h"
+#include "scroll_listener.h"
 #include "sorted_list_gd.h"
 #include "span_size_lookup.h"
 #include "state.h"
@@ -48,6 +49,9 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(GridLayoutManager);
 	GDREGISTER_CLASS(SpanSizeLookup);
 	GDREGISTER_CLASS(ItemDecoration);
+	// Not abstract: GDScript subclasses extend ScrollListener directly, and a
+	// script cannot inherit from a class registered as abstract.
+	GDREGISTER_CLASS(ScrollListener);
 	GDREGISTER_CLASS(RecyclerView);
 	GDREGISTER_CLASS(ExampleClass);
 }
