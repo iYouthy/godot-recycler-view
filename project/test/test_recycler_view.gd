@@ -316,6 +316,7 @@ func test_notify_insert_preserves_and_offsets_holders() -> void:
 	# Insert above the viewport: existing holders shift +1, creation stays bounded.
 	adapter.items.insert(3, -1)
 	rv.notify_item_range_inserted(3, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	assert_that(adapter.created).is_less(created_before + 3)
 	# The visible window now starts at item 4 (old index 3 was shifted out of view
@@ -339,6 +340,7 @@ func test_notify_remove_reuses_holders() -> void:
 
 	adapter.items.remove_at(3)
 	rv.notify_item_range_removed(3, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	# The window shifts by one slot; creation stays bounded (at most one new).
 	assert_that(adapter.created).is_less(created_before + 3)
@@ -362,6 +364,7 @@ func test_notify_move_offsets_holders() -> void:
 	adapter.items.remove_at(8)
 	adapter.items.insert(3, value)
 	rv.notify_item_moved(8, 3)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	assert_that(adapter.created).is_less(created_before + 3)
 	# After the move the window 5..14 shows items 5..14 of the new list.
@@ -381,6 +384,7 @@ func test_notify_change_rebinds_visible() -> void:
 	adapter.bound.clear()
 	adapter.items[8] = 999
 	rv.notify_item_range_changed(8, 1, null)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	# The visible holder at position 8 is re-bound to the new content.
 	var h8 := _find_holder(rv, 8)
 	assert_that(h8).is_not_null()
@@ -413,6 +417,7 @@ func test_diff_dispatch_drives_incremental_update() -> void:
 	var update := AdapterListUpdateCallback.new()
 	update.set_adapter(adapter)
 	diff.dispatch_updates_to(update)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	# Creation stays bounded: the diff drove an incremental update, not a full rebuild.

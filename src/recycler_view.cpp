@@ -763,31 +763,31 @@ Ref<LayoutManager> RecyclerView::get_layout() const {
 void RecyclerView::notify_item_range_changed(int p_position, int p_count, const Variant &p_payload) {
 	m_adapter_helper->on_item_range_changed(p_position, p_count, p_payload);
 	mark_data_changed();
-	request_layout();
+	defer_layout();
 }
 
 void RecyclerView::notify_item_range_inserted(int p_position, int p_count) {
 	m_adapter_helper->on_item_range_inserted(p_position, p_count);
 	mark_data_changed();
-	request_layout();
+	defer_layout();
 }
 
 void RecyclerView::notify_item_range_removed(int p_position, int p_count) {
 	m_adapter_helper->on_item_range_removed(p_position, p_count);
 	mark_data_changed();
-	request_layout();
+	defer_layout();
 }
 
 void RecyclerView::notify_item_moved(int p_from_position, int p_to_position) {
 	m_adapter_helper->on_item_range_moved(p_from_position, p_to_position);
 	mark_data_changed();
-	request_layout();
+	defer_layout();
 }
 
 void RecyclerView::notify_data_changed() {
 	m_adapter_helper->clear();
 	mark_data_changed();
-	request_layout();
+	defer_layout();
 }
 
 void RecyclerView::mark_data_changed() {
@@ -1031,12 +1031,15 @@ void RecyclerView::process_pending_updates() {
 		}
 	}
 
-	// Re-bind holders whose item content changed (FLAG_UPDATE). bind_view_holder
-	// also clears the FLAG_UPDATE marker.
+	// Re-bind holders whose item content changed (FLAG_UPDATE). A change op that
+	// carried a payload triggers a partial rebind (only the affected child
+	// control); otherwise the whole item is re-bound. bind_view_holder also
+	// clears the FLAG_UPDATE marker.
 	for (int i = 0; i < m_children.size(); i++) {
 		Ref<ViewHolder> holder = m_children[i];
 		if (holder->is_updated()) {
-			m_adapter->bind_view_holder(holder, holder->get_position());
+			const Variant payload = m_adapter_helper->get_payload_at_position(holder->get_position());
+			m_adapter->bind_view_holder_with_payload(holder, holder->get_position(), payload);
 		}
 	}
 }
@@ -1045,6 +1048,7 @@ void RecyclerView::layout_children() {
 	if (m_layout_in_progress) {
 		return;
 	}
+	m_layout_deferred = false;
 	if (!m_layout.is_valid() || !m_adapter.is_valid()) {
 		return;
 	}
@@ -1073,6 +1077,14 @@ void RecyclerView::layout_children() {
 
 void RecyclerView::request_layout() {
 	layout_children();
+}
+
+void RecyclerView::defer_layout() {
+	if (m_layout_deferred) {
+		return;
+	}
+	m_layout_deferred = true;
+	call_deferred("layout_children");
 }
 
 void RecyclerView::free_items() {

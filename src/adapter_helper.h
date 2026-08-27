@@ -46,11 +46,21 @@ public:
 	// The queued ops (consumed by consume_updates_in_one_pass).
 	const Vector<UpdateOp> &get_pending_ops() const { return m_pending_ops; }
 
+	// Returns the change payload for the given post-consume position, or an
+	// empty Variant when the position was not updated with a payload. Filled by
+	// consume_updates_in_one_pass: an UPDATE op's start is the new-list position,
+	// which is exactly the position an attached holder has after the consume.
+	Variant get_payload_at_position(int p_position) const;
+
 private:
 	Vector<UpdateOp> m_pending_ops;
 	// Keeps payload Variants alive; op.payload stores (index + 1) as an opaque
 	// handle so vector reallocation never invalidates it.
 	Vector<Variant> m_payloads;
+	// Parallel arrays: (post-consume position -> payload) for every item updated
+	// with a change payload this cycle. Consumed by get_payload_at_position.
+	Vector<int> m_update_payload_positions;
+	Vector<Variant> m_update_payload_values;
 };
 
 } // namespace godot

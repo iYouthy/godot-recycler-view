@@ -133,6 +133,12 @@ public:
 
 	void layout_children();
 	void request_layout();
+	// Notify paths do not re-layout synchronously: a single notify_* call is one
+	// op of a larger dispatch (DiffUtil emits several per diff), and laying out
+	// per-op would consume an intermediate op state against the already-updated
+	// adapter, duplicating views. Instead each notify_* defers one layout to the
+	// end of the frame (deduplicated), so all ops land in one consume pass.
+	void defer_layout();
 	// Frees every item Control (visible and recycled). Teardown helper.
 	void free_items();
 
@@ -201,6 +207,7 @@ private:
 	Ref<AdapterHelper> m_adapter_helper;
 	Vector<Ref<ItemDecoration>> m_decorations;
 	Ref<ItemAnimator> m_item_animator;
+	bool m_layout_deferred = false;
 
 	// Tracked child ViewHolders (in tree order), for recycling on scroll.
 	Vector<Ref<ViewHolder>> m_children;

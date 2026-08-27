@@ -85,10 +85,35 @@ void AdapterHelper::consume_updates_in_one_pass(Vector<Ref<ViewHolder>> &p_attac
 	if (m_pending_ops.is_empty()) {
 		return;
 	}
+	// Collect the change payloads keyed by the post-consume position (an UPDATE
+	// op's start is the new-list position, which is where its holder lands after
+	// the consume). Consumed later by the RecyclerView's rebind pass.
+	m_update_payload_positions.clear();
+	m_update_payload_values.clear();
+	for (int i = 0; i < m_pending_ops.size(); i++) {
+		const UpdateOp &op = m_pending_ops[i];
+		if (op.cmd == UpdateOp::UPDATE) {
+			const int payload_index = (int)(intptr_t)op.payload - 1;
+			const Variant payload = (payload_index >= 0 && payload_index < m_payloads.size()) ? m_payloads[payload_index] : Variant();
+			for (int k = 0; k < op.item_count; k++) {
+				m_update_payload_positions.push_back(op.position_start + k);
+				m_update_payload_values.push_back(payload);
+			}
+		}
+	}
 	for (int i = 0; i < p_attached.size(); i++) {
 		apply_updates_to_holder(p_attached[i]);
 	}
 	clear();
+}
+
+Variant AdapterHelper::get_payload_at_position(int p_position) const {
+	for (int i = 0; i < m_update_payload_positions.size(); i++) {
+		if (m_update_payload_positions[i] == p_position) {
+			return m_update_payload_values[i];
+		}
+	}
+	return Variant();
 }
 
 int AdapterHelper::apply_pending_updates_to_position(int p_position) const {

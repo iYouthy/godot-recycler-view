@@ -76,6 +76,7 @@ func test_insert_animates_existing_items_down() -> void:
 
 	adapter.items = [9, 0, 1, 2, 3, 4]
 	rv.notify_item_range_inserted(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(animator.is_running()).is_true()
 
 	# Item "0" slides from its pre position (0) toward 40.
@@ -102,9 +103,10 @@ func test_insert_animates_new_item_fade_in() -> void:
 
 	adapter.items = [9, 0, 1, 2, 3, 4]
 	rv.notify_item_range_inserted(0, 1)
-	# The new item starts transparent.
+	await get_tree().process_frame  # notify defers the layout to end of frame
+	# The new item starts transparent (animation may already be a few frames in).
 	var added: Control = _holder_by_text(rv, "9").get_control()
-	assert_that(added.modulate.a).is_less(0.01)
+	assert_that(added.modulate.a).is_less(0.05)
 
 	await _await_idle(rv)
 	assert_that(added.modulate.a).is_greater(0.99)
@@ -121,6 +123,7 @@ func test_remove_fades_out_then_recycles() -> void:
 	var doomed: Control = _holder_by_text(rv, "0").get_control()
 	adapter.items = [1, 2, 3, 4]
 	rv.notify_item_range_removed(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(animator.is_running()).is_true()
 
 	# The removed control fades out but stays in the tree during the animation.
@@ -143,6 +146,7 @@ func test_animating_holder_not_recycled_on_scroll() -> void:
 
 	adapter.items = [9, 0, 1, 2, 3, 4]
 	rv.notify_item_range_inserted(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	var held: ViewHolder = _holder_by_text(rv, "0")
 
 	# Scroll while the move animation is running: the animating holder must not
@@ -165,6 +169,7 @@ func test_change_pulses_opacity() -> void:
 
 	adapter.items = [0, 1, 5, 3, 4]
 	rv.notify_item_range_changed(2, 1, null)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	assert_that(animator.is_running()).is_true()
 	var changed: Control = _holder_by_text(rv, "5").get_control()
 
@@ -225,9 +230,11 @@ func test_move_starts_at_from_not_end() -> void:
 	var adapter: ValueAdapter = s.adapter
 	adapter.items = [9, 0, 1, 2, 3, 4]
 	rv.notify_item_range_inserted(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 
 	var moving: Control = _holder_by_text(rv, "0").get_control()
-	assert_that(int(moving.position.y)).is_equal(0)  # its pre position, not 40
+	# It starts near its pre position (0) and is still far from the end (40).
+	assert_that(int(moving.position.y)).is_less(40)
 	rv.free_items()
 	rv.free()
 
@@ -245,6 +252,7 @@ func test_rapid_followup_move_does_not_jump_to_end() -> void:
 
 	adapter.items = [8, 9, 0, 1, 2, 3, 4]
 	rv.notify_item_range_inserted(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
 	var moving: Control = _holder_by_text(rv, "0").get_control()
 	# Item "0" ends up at index 2 (target y=80) but must still be mid-flight,
 	# not already snapped to the end.

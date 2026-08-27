@@ -43,6 +43,7 @@ void AdapterDataObserver::on_state_restoration_policy_changed() {
 void Adapter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_view_holder", "parent", "view_type"), &Adapter::create_view_holder);
 	ClassDB::bind_method(D_METHOD("bind_view_holder", "holder", "position"), &Adapter::bind_view_holder);
+	ClassDB::bind_method(D_METHOD("bind_view_holder_with_payload", "holder", "position", "payload"), &Adapter::bind_view_holder_with_payload);
 	ClassDB::bind_method(D_METHOD("get_item_count"), &Adapter::get_item_count);
 	ClassDB::bind_method(D_METHOD("get_item_view_type", "position"), &Adapter::get_item_view_type);
 	ClassDB::bind_method(D_METHOD("get_item_id", "position"), &Adapter::get_item_id);
@@ -61,6 +62,7 @@ void Adapter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("notify_item_removed", "position"), &Adapter::notify_item_removed);
 	GDVIRTUAL_BIND(_create_item, "parent", "view_type");
 	GDVIRTUAL_BIND(_bind_item, "holder", "position");
+	GDVIRTUAL_BIND(_bind_item_with_payload, "holder", "position", "payload");
 	GDVIRTUAL_BIND(_get_item_count);
 	GDVIRTUAL_BIND(_get_item_view_type, "position");
 	GDVIRTUAL_BIND(_get_item_height, "position");
@@ -89,6 +91,22 @@ void Adapter::bind_view_holder(const Ref<ViewHolder> &p_holder, int p_position) 
 		p_holder->set_stable_id(get_item_id(p_position));
 	}
 	p_holder->set_flags(ViewHolder::FLAG_BOUND, ViewHolder::FLAG_BOUND | ViewHolder::FLAG_UPDATE | ViewHolder::FLAG_INVALID | ViewHolder::FLAG_ADAPTER_POSITION_UNKNOWN);
+	GDVIRTUAL_CALL(_bind_item, p_holder, p_position);
+}
+
+void Adapter::bind_view_holder_with_payload(const Ref<ViewHolder> &p_holder, int p_position, const Variant &p_payload) {
+	ERR_FAIL_NULL(p_holder);
+	p_holder->set_position(p_position);
+	if (has_stable_ids()) {
+		p_holder->set_stable_id(get_item_id(p_position));
+	}
+	p_holder->set_flags(ViewHolder::FLAG_BOUND, ViewHolder::FLAG_BOUND | ViewHolder::FLAG_UPDATE | ViewHolder::FLAG_INVALID | ViewHolder::FLAG_ADAPTER_POSITION_UNKNOWN);
+	// Partial rebind: a payload is set and the script implements the payload
+	// hook, so only the affected child control is updated. Otherwise the whole
+	// item is re-bound.
+	if (p_payload.get_type() != Variant::NIL && GDVIRTUAL_CALL(_bind_item_with_payload, p_holder, p_position, p_payload)) {
+		return;
+	}
 	GDVIRTUAL_CALL(_bind_item, p_holder, p_position);
 }
 

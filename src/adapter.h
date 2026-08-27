@@ -47,6 +47,10 @@ public:
 	// Script-overridable virtual methods.
 	GDVIRTUAL2R(Ref<ViewHolder>, _create_item, Control *, int)
 	GDVIRTUAL2(_bind_item, Ref<ViewHolder>, int)
+	// Optional partial rebind: a change op that carried a payload calls this with
+	// the payload, so the adapter can update only the affected child control
+	// instead of rebinding the whole item. Falls back to _bind_item when absent.
+	GDVIRTUAL3(_bind_item_with_payload, Ref<ViewHolder>, int, Variant)
 	GDVIRTUAL0R(int, _get_item_count)
 	GDVIRTUAL1R(int, _get_item_view_type, int)
 	GDVIRTUAL1R(int, _get_item_height, int)
@@ -58,6 +62,9 @@ public:
 
 	Ref<ViewHolder> create_view_holder(Control *p_parent, int p_view_type);
 	void bind_view_holder(const Ref<ViewHolder> &p_holder, int p_position);
+	// Binds with a change payload: calls _bind_item_with_payload when the payload
+	// is set and the script implements it, otherwise falls back to a full rebind.
+	void bind_view_holder_with_payload(const Ref<ViewHolder> &p_holder, int p_position, const Variant &p_payload);
 
 	int get_item_count();
 	int get_item_view_type(int p_position);

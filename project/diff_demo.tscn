@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b1w0eat640hco" path="res://diff_demo.gd" id="1_demo"]
+
+[node name="DiffDemo" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="InsertButton" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "插入 index 3"
+
+[node name="RemoveButton" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "删除 index 5"
+
+[node name="MoveButton" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "移动 2→8"
+
+[node name="ChangeButton" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "修改 4(★)"
+
+[node name="Buttons2" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="MixButton" type="Button" parent="Buttons2"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "混合(改+删+插)"
+
+[node name="NaiveButton" type="Button" parent="Buttons2"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "naive 全量重建"
+
+[node name="ResetButton" type="Button" parent="Buttons2"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "重置"
+
+[node name="InfoLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="RecyclerView" type="RecyclerView" parent="."]
+item_size = 40
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
