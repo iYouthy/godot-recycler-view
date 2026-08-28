@@ -1,11 +1,9 @@
 extends Control
 
-const ListAdapter := preload("res://list_adapter.gd")
-
 @onready var recycler_view: RecyclerView = %RecyclerView
 @onready var counter_label: Label = %CounterLabel
 
-var _adapter: ListAdapter
+var _adapter: DemoAdapter
 var _update_callback: AdapterListUpdateCallback
 var _frame := 0
 
@@ -28,7 +26,7 @@ class DiffCallback extends DiffUtilCallback:
 
 
 func _ready() -> void:
-	_adapter = ListAdapter.new()
+	_adapter = DemoAdapter.new()
 	for i in 10000:
 		_adapter.items.append(i)
 	var layout := LinearLayoutManager.new()
@@ -87,3 +85,23 @@ func _mutate(items: Array) -> void:
 			_:  # change a value (negative so it stands out)
 				var pos := randi() % items.size()
 				items[pos] = -items[pos]
+
+
+class DemoAdapter extends Adapter:
+	var items: Array = []
+	var created: int = 0
+
+	func _get_item_count() -> int:
+		return items.size()
+
+	func _create_item(parent: Control, view_type: int) -> ViewHolder:
+		created += 1
+		var vh := ViewHolder.new()
+		var label := Label.new()
+		label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		vh.set_control(label)
+		return vh
+
+	func _bind_item(holder: ViewHolder, position: int) -> void:
+		var label: Label = holder.get_control()
+		label.text = "Item %d" % items[position]

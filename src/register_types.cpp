@@ -10,12 +10,13 @@
 #include "adapter_list_update_callback.h"
 #include "default_item_animator.h"
 #include "diff_util.h"
-#include "example_class.h"
+#include "diff_util_item_callback.h"
 #include "grid_layout_manager.h"
 #include "item_animator.h"
 #include "item_decoration.h"
 #include "layout_manager.h"
 #include "linear_layout_manager.h"
+#include "list_adapter.h"
 #include "list_update_callback.h"
 #include "recycler.h"
 #include "recycler_view.h"
@@ -34,6 +35,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	}
 	GDREGISTER_CLASS(DiffUtil);
 	GDREGISTER_CLASS(DiffUtilCallback);
+	GDREGISTER_CLASS(DiffUtilItemCallback);
 	GDREGISTER_CLASS(DiffResult);
 	GDREGISTER_CLASS(ListUpdateCallback);
 	GDREGISTER_CLASS(BatchingListUpdateCallback);
@@ -43,6 +45,9 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(SortedListCallback);
 	GDREGISTER_CLASS(ViewHolder);
 	GDREGISTER_CLASS(Adapter);
+	// Not abstract: GDScript subclasses extend ListAdapter directly, and a
+	// script cannot inherit from a class registered as abstract.
+	GDREGISTER_CLASS(ListAdapter);
 	GDREGISTER_CLASS(AdapterDataObserver);
 	GDREGISTER_CLASS(State);
 	GDREGISTER_CLASS(Recycler);
@@ -59,7 +64,6 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	// script cannot inherit from a class registered as abstract.
 	GDREGISTER_CLASS(ScrollListener);
 	GDREGISTER_CLASS(RecyclerView);
-	GDREGISTER_CLASS(ExampleClass);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

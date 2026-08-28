@@ -38,7 +38,7 @@ public:
 
 	void _gui_input(const Ref<InputEvent> &p_event) override;
 	void _process(double p_delta) override;
-	void _draw();
+	void _draw() override;
 
 	enum ScrollState {
 		SCROLL_STATE_IDLE = 0,

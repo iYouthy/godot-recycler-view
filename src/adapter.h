@@ -66,7 +66,9 @@ public:
 	// is set and the script implements it, otherwise falls back to a full rebind.
 	void bind_view_holder_with_payload(const Ref<ViewHolder> &p_holder, int p_position, const Variant &p_payload);
 
-	int get_item_count();
+	// Virtual so adapter subclasses (e.g. ListAdapter) can derive the count from
+	// their own state instead of a script _get_item_count override.
+	virtual int get_item_count();
 	int get_item_view_type(int p_position);
 	// Returns the item's height along the scroll axis, or <= 0 for the
 	// RecyclerView's default item size (variable heights are optional).

@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://dn4i5m0ylbj81"]
+
+[ext_resource type="Script" uid="uid://dto3gruswclkw" path="res://list_adapter_demo.gd" id="1_demo"]
+
+[node name="ListAdapterDemo" type="VBoxContainer" unique_id=1364980636]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="Buttons" type="HBoxContainer" parent="." unique_id=691262158]
+layout_mode = 2
+
+[node name="RandomButton" type="Button" parent="Buttons" unique_id=1937263979]
+unique_name_in_owner = true
+layout_mode = 2
+text = "随机列表"
+
+[node name="AppendButton" type="Button" parent="Buttons" unique_id=191703277]
+unique_name_in_owner = true
+layout_mode = 2
+text = "追加一项"
+
+[node name="RenameButton" type="Button" parent="Buttons" unique_id=955676226]
+unique_name_in_owner = true
+layout_mode = 2
+text = "改第一项名字"
+
+[node name="RemoveButton" type="Button" parent="Buttons" unique_id=1099311774]
+unique_name_in_owner = true
+layout_mode = 2
+text = "删最后一项"
+
+[node name="InfoLabel" type="Label" parent="." unique_id=2004011553]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="HintLabel" type="Label" parent="." unique_id=1758919301]
+unique_name_in_owner = true
+layout_mode = 2
+text = "ListAdapter：submit_list 自动 diff + 增量更新，不用手写 DiffCallback / _get_item_count。created 增长 = 真的重建了几项（id 变才重建，改名字只 change）。"
+autowrap_mode = 2
+
+[node name="RecyclerView" type="RecyclerView" parent="." unique_id=1018320958]
+item_size = 40
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
