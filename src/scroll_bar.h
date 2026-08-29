@@ -112,6 +112,9 @@ public:
 private:
 	// Maps the thumb's start coordinate to a scroll offset and applies it.
 	void scroll_to_pos(float p_thumb_start);
+	// Progressive drag (Android's handleScrollBarDragging): advances the thumb by
+	// the mouse delta from the previous event instead of jumping to the cursor.
+	void scroll_by_delta(float p_delta);
 	// Advances the fade toward the current target alpha.
 	void update_alpha(float p_delta);
 
@@ -138,7 +141,9 @@ private:
 	// self-managed hover state). Only polled while the bar is interactive.
 	bool m_hovered = false;
 	bool m_dragging = false;
-	float m_grab_offset = 0.0f;
+	// Last mouse position along the scroll axis; the drag advances the thumb by
+	// the delta from this baseline (Android's incremental scroll-bar dragging).
+	float m_last_along = 0.0f;
 };
 
 } // namespace godot

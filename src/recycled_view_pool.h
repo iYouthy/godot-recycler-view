@@ -157,10 +157,10 @@ public:
 	}
 
 private:
-	// One screen of items plus slack: a scroll-bar drag jumps the viewport by
-	// far more than the position-bound cache can cover, so the pool must absorb
-	// a full screen of recycled holders to keep the steady-state reuse at 100%.
-	static const int DEFAULT_MAX_SCRAP = 20;
+	// Android's RecycledViewPool default: 5 per view type. Scroll-bar dragging is
+	// incremental (see DefaultScrollBar::scroll_by_delta), so the viewport only
+	// shifts a fraction per frame and the reuse chain stays warm.
+	static const int DEFAULT_MAX_SCRAP = 5;
 
 	int64_t get_create_running_average(int p_view_type) const {
 		return get_create_running_average_ns(p_view_type);

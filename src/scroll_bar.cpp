@@ -283,7 +283,7 @@ void DefaultScrollBar::_gui_input(const Ref<InputEvent> &p_event) {
 			const float along = m_axis == SCROLL_BAR_VERTICAL ? pos.y : pos.x;
 			if (thumb.has_point(pos)) {
 				m_dragging = true;
-				m_grab_offset = m_axis == SCROLL_BAR_VERTICAL ? pos.y - thumb.position.y : pos.x - thumb.position.x;
+				m_last_along = along;
 			} else {
 				// Click on the track: jump the thumb center to the click.
 				const float half = (m_axis == SCROLL_BAR_VERTICAL ? thumb.size.y : thumb.size.x) * 0.5f;
@@ -307,7 +307,11 @@ void DefaultScrollBar::_gui_input(const Ref<InputEvent> &p_event) {
 		}
 		const Vector2 pos = mm->get_position();
 		const float along = m_axis == SCROLL_BAR_VERTICAL ? pos.y : pos.x;
-		scroll_to_pos(along - m_grab_offset);
+		const float diff = along - m_last_along;
+		m_last_along = along;
+		if (diff != 0.0f) {
+			scroll_by_delta(diff);
+		}
 		accept_event();
 	}
 }
@@ -343,6 +347,25 @@ void DefaultScrollBar::scroll_to_pos(float p_thumb_start) {
 	}
 }
 
+void DefaultScrollBar::scroll_by_delta(float p_delta) {
+	if (m_recycler_view == nullptr) {
+		return;
+	}
+	const float track_len = m_axis == SCROLL_BAR_VERTICAL ? get_size().y : get_size().x;
+	const Rect2 thumb = get_thumb_rect();
+	const float thumb_len = m_axis == SCROLL_BAR_VERTICAL ? thumb.size.y : thumb.size.x;
+	const float travel = track_len - thumb_len;
+	if (travel <= 0.0f) {
+		return;
+	}
+	// Android's handleScrollBarDragging semantics: each motion event advances the
+	// thumb by the mouse delta since the previous event. The viewport then only
+	// shifts a fraction of its size per frame, so the reuse chain (position cache
+	// + pool) absorbs it and no fresh holders are fabricated while dragging.
+	const float start = m_axis == SCROLL_BAR_VERTICAL ? thumb.position.y : thumb.position.x;
+	scroll_to_pos(start + p_delta);
+}
+
 void DefaultScrollBar::_process(double p_delta) {
 	// While dragging, keep following the mouse even outside the window: Godot
 	// stops sending motion events once the cursor leaves the window, so the
@@ -354,7 +377,11 @@ void DefaultScrollBar::_process(double p_delta) {
 			const float along = m_axis == SCROLL_BAR_VERTICAL
 					? global.y - get_global_position().y
 					: global.x - get_global_position().x;
-			scroll_to_pos(along - m_grab_offset);
+			const float diff = along - m_last_along;
+			m_last_along = along;
+			if (diff != 0.0f) {
+				scroll_by_delta(diff);
+			}
 		} else {
 			m_dragging = false;
 		}

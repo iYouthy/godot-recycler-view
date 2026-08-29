@@ -172,12 +172,11 @@ func test_scroll_and_insert_mid_animation_no_crash_created_bounded() -> void:
 	rv.free()
 
 
-# Dragging the scroll bar jumps the offset by far more than one viewport per
-# frame (the thumb tracks the cursor 1:1 over a much larger content range), so
-# the visible set is replaced entirely every frame. The cached holders' stored
-# positions never match the post-jump viewport, so the position-bound cache must
-# fall back to type-based reuse and the pool must absorb a full screen, or a
-# fresh holder is fabricated every frame (created grows without bound).
+# Dragging the scroll bar is incremental (Android's handleScrollBarDragging):
+# each motion advances the thumb by the mouse delta, so the viewport shifts only
+# a fraction of its size per frame. The cached holders' positions overlap frame
+# to frame, so the position-bound cache + pool absorb the recycling and no fresh
+# holder is fabricated while dragging.
 func test_scroll_bar_drag_created_bounded() -> void:
 	get_window().size = Vector2i(1920, 1080)
 	get_window().content_scale_size = Vector2i(1920, 1080)
@@ -196,10 +195,12 @@ func test_scroll_bar_drag_created_bounded() -> void:
 	get_tree().root.add_child(rv)
 	rv.request_layout()
 	await get_tree().process_frame
+	# A full drag scrolls a large range incrementally: ~4 items per frame (fast
+	# drag, but always well under the 15-item viewport) for 60 frames.
 	for i in 60:
-		rv.set_scroll_offset_horizontal((i + 1) * 680)  # ~17 items per jump
+		rv.set_scroll_offset_horizontal(rv.get_scroll_offset_horizontal() + 160)
 		await get_tree().process_frame
-	# 15 visible + slack; far below 60 jumps (which used to reach ~195).
+	# 15 visible + cache + pool slack; far below the ~240 items scrolled over.
 	assert_that(adapter.created).is_less(40)
 	rv.free_items()
 	rv.free()
