@@ -1253,7 +1253,10 @@ void RecyclerView::set_scroll_offset(int p_offset) {
 	// visible set each frame; let this layout reuse the position-cached holders
 	// by type too. Small scrolls keep the cache position-exact.
 	const int viewport_main = (int)get_viewport_size().y;
-	m_recycler->set_cache_fallback_enabled(ABS(m_scroll_offset - before) > viewport_main);
+	// A jump past the viewport (or an active scroll-bar drag) replaces the whole
+	// visible set each frame; let this layout reuse the position-cached holders
+	// by type too. Small scrolls keep the cache position-exact.
+	m_recycler->set_cache_fallback_enabled(m_recycler->is_drag_buffering() || ABS(m_scroll_offset - before) > viewport_main);
 	layout_children();
 }
 
@@ -1264,7 +1267,7 @@ void RecyclerView::set_scroll_offset_horizontal(int p_offset) {
 		m_last_scroll_direction = m_scroll_offset_h > before ? 1 : -1;
 	}
 	const int viewport_main = (int)get_viewport_size().x;
-	m_recycler->set_cache_fallback_enabled(ABS(m_scroll_offset_h - before) > viewport_main);
+	m_recycler->set_cache_fallback_enabled(m_recycler->is_drag_buffering() || ABS(m_scroll_offset_h - before) > viewport_main);
 	layout_children();
 }
 

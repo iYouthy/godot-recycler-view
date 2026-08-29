@@ -34,11 +34,8 @@ public:
 	void set_view_cache_size(int p_size) { m_view_cache_max = p_size; }
 	int get_view_cache_size() const { return m_view_cache_max; }
 
-	// Per-view-type recycled-pool capacity (default 20, one screen of items plus
-	// slack). Mirrors RecycledViewPool.setMaxRecycledViews. A larger pool smooths
-	// over layouts whose scrolled-out count per pass differs from the incoming
-	// count (e.g. grids with mixed view types and uneven row heights), keeping
-	// the created counter bounded instead of fabricating a fresh view each pass.
+	// Per-view-type recycled-pool capacity (default 5, Android's
+	// DEFAULT_MAX_SCRAP). Mirrors RecycledViewPool.setMaxRecycledViews.
 	void set_view_pool_size(int p_view_type, int p_max) { m_pool.set_max_recycled_views(p_view_type, p_max); }
 	int get_view_pool_size(int p_view_type) const { return m_pool.get_max_recycled_views(p_view_type); }
 
@@ -48,6 +45,16 @@ public:
 	// longer matches, instead of leaving them idle while fresh views are built.
 	// Small scrolls keep the cache position-exact (see get_view_for_position).
 	void set_cache_fallback_enabled(bool p_enabled) { m_cache_fallback = p_enabled; }
+
+	// Drag buffering, Android's GapWorker-driven view-cache expansion: while the
+	// scroll bar is dragged the view cache grows to a full viewport and the cache
+	// fallback stays on (see RecyclerView), so recycled holders cycle by type and
+	// the created count stays bounded even when the drag scrolls far more per
+	// frame than the pool can hold. begin_drag_buffer / end_drag_buffer bracket
+	// the drag; end sinks any cache overflow back into the pool.
+	void begin_drag_buffer(int p_viewport_capacity);
+	void end_drag_buffer();
+	bool is_drag_buffering() const { return m_drag_buffering; }
 
 	// Obtains a holder for the given layout position, binding it if reused.
 	Ref<ViewHolder> get_view_for_position(int p_position);
@@ -86,7 +93,9 @@ public:
 private:
 	Ref<Adapter> m_adapter;
 	int m_view_cache_max = 1;
+	int m_view_cache_max_saved = 1;
 	bool m_cache_fallback = false;
+	bool m_drag_buffering = false;
 	Vector<Ref<ViewHolder>> m_cached_views;
 	Vector<Ref<ViewHolder>> m_changed_scrap;
 	RecycledViewPool m_pool;

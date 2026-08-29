@@ -284,6 +284,7 @@ void DefaultScrollBar::_gui_input(const Ref<InputEvent> &p_event) {
 			if (thumb.has_point(pos)) {
 				m_dragging = true;
 				m_last_along = along;
+				begin_drag_buffer();
 			} else {
 				// Click on the track: jump the thumb center to the click.
 				const float half = (m_axis == SCROLL_BAR_VERTICAL ? thumb.size.y : thumb.size.x) * 0.5f;
@@ -292,6 +293,7 @@ void DefaultScrollBar::_gui_input(const Ref<InputEvent> &p_event) {
 			accept_event();
 		} else if (m_dragging) {
 			m_dragging = false;
+			end_drag_buffer();
 			accept_event();
 		}
 		return;
@@ -303,6 +305,7 @@ void DefaultScrollBar::_gui_input(const Ref<InputEvent> &p_event) {
 		// following the mouse.
 		if (!mm->get_button_mask().has_flag(MouseButtonMask::MOUSE_BUTTON_MASK_LEFT)) {
 			m_dragging = false;
+			end_drag_buffer();
 			return;
 		}
 		const Vector2 pos = mm->get_position();
@@ -359,11 +362,34 @@ void DefaultScrollBar::scroll_by_delta(float p_delta) {
 		return;
 	}
 	// Android's handleScrollBarDragging semantics: each motion event advances the
-	// thumb by the mouse delta since the previous event. The viewport then only
-	// shifts a fraction of its size per frame, so the reuse chain (position cache
-	// + pool) absorbs it and no fresh holders are fabricated while dragging.
+	// thumb by the mouse delta since the previous event. While dragging, the view
+	// cache is grown to a full viewport (begin_drag_buffer) and the cache
+	// fallback stays on, so recycled holders cycle by type instead of fabricating
+	// fresh holders every frame.
 	const float start = m_axis == SCROLL_BAR_VERTICAL ? thumb.position.y : thumb.position.x;
 	scroll_to_pos(start + p_delta);
+}
+
+void DefaultScrollBar::begin_drag_buffer() {
+	if (m_drag_buffered || m_recycler_view == nullptr || m_recycler_view->get_recycler().is_null()) {
+		return;
+	}
+	// Android's GapWorker expands the view cache while scrolling; here the drag
+	// grows it to a full viewport so the cache fallback (reuse by type) absorbs
+	// the whole jump instead of fabricating fresh holders.
+	const int viewport = get_viewport_size();
+	const int extent = m_recycler_view->get_default_item_extent();
+	const int capacity = extent > 0 ? MAX(1, viewport / extent) : viewport;
+	m_recycler_view->get_recycler()->begin_drag_buffer(capacity);
+	m_drag_buffered = true;
+}
+
+void DefaultScrollBar::end_drag_buffer() {
+	if (!m_drag_buffered || m_recycler_view == nullptr || m_recycler_view->get_recycler().is_null()) {
+		return;
+	}
+	m_recycler_view->get_recycler()->end_drag_buffer();
+	m_drag_buffered = false;
 }
 
 void DefaultScrollBar::_process(double p_delta) {
@@ -374,16 +400,23 @@ void DefaultScrollBar::_process(double p_delta) {
 	if (m_dragging && get_viewport() != nullptr && Input::get_singleton() != nullptr) {
 		if (Input::get_singleton()->is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)) {
 			const Vector2 global = get_viewport()->get_mouse_position();
-			const float along = m_axis == SCROLL_BAR_VERTICAL
-					? global.y - get_global_position().y
-					: global.x - get_global_position().x;
-			const float diff = along - m_last_along;
-			m_last_along = along;
-			if (diff != 0.0f) {
-				scroll_by_delta(diff);
+			// _gui_input already consumes the motion events while the cursor is
+			// inside the window; only poll here once it has left, otherwise the
+			// two paths would double-consume the same mouse delta.
+			const Vector2 win = get_viewport()->get_visible_rect().size;
+			if (global.x < 0.0f || global.y < 0.0f || global.x > win.x || global.y > win.y) {
+				const float along = m_axis == SCROLL_BAR_VERTICAL
+						? global.y - get_global_position().y
+						: global.x - get_global_position().x;
+				const float diff = along - m_last_along;
+				m_last_along = along;
+				if (diff != 0.0f) {
+					scroll_by_delta(diff);
+				}
 			}
 		} else {
 			m_dragging = false;
+			end_drag_buffer();
 		}
 	}
 	// Cursor inside the RV: moving it resets the idle timer so the bar stays

@@ -115,6 +115,11 @@ private:
 	// Progressive drag (Android's handleScrollBarDragging): advances the thumb by
 	// the mouse delta from the previous event instead of jumping to the cursor.
 	void scroll_by_delta(float p_delta);
+	// While the thumb is dragged, grows the Recycler's view cache to a full
+	// viewport and keeps the cache fallback on (see Recycler::begin_drag_buffer)
+	// so recycled holders cycle by type; restored when the drag ends.
+	void begin_drag_buffer();
+	void end_drag_buffer();
 	// Advances the fade toward the current target alpha.
 	void update_alpha(float p_delta);
 
@@ -141,6 +146,8 @@ private:
 	// self-managed hover state). Only polled while the bar is interactive.
 	bool m_hovered = false;
 	bool m_dragging = false;
+	// True while the drag's viewport-sized cache buffer is active.
+	bool m_drag_buffered = false;
 	// Last mouse position along the scroll axis; the drag advances the thumb by
 	// the delta from this baseline (Android's incremental scroll-bar dragging).
 	float m_last_along = 0.0f;

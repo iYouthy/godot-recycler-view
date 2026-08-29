@@ -111,6 +111,24 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 	return holder;
 }
 
+void Recycler::begin_drag_buffer(int p_viewport_capacity) {
+	m_view_cache_max_saved = m_view_cache_max;
+	m_view_cache_max = MAX(m_view_cache_max, p_viewport_capacity);
+	m_drag_buffering = true;
+}
+
+void Recycler::end_drag_buffer() {
+	m_drag_buffering = false;
+	m_view_cache_max = m_view_cache_max_saved;
+	// Sink the cache overflow (grown to a viewport while dragging) back into the
+	// pool; recycle_view re-dispatches it (pool-full frees the Control).
+	while (m_cached_views.size() > m_view_cache_max) {
+		Ref<ViewHolder> holder = m_cached_views[0];
+		m_cached_views.remove_at(0);
+		recycle_view(holder, holder->get_position());
+	}
+}
+
 void Recycler::recycle_view(const Ref<ViewHolder> &p_holder, int p_position) {
 	ERR_FAIL_NULL(p_holder);
 	p_holder->set_position(p_position);
