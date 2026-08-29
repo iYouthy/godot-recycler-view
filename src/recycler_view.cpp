@@ -1249,6 +1249,11 @@ void RecyclerView::set_scroll_offset(int p_offset) {
 	if (m_scroll_offset != before) {
 		m_last_scroll_direction = m_scroll_offset > before ? 1 : -1;
 	}
+	// A jump past the viewport (e.g. dragging the scroll bar) replaces the whole
+	// visible set each frame; let this layout reuse the position-cached holders
+	// by type too. Small scrolls keep the cache position-exact.
+	const int viewport_main = (int)get_viewport_size().y;
+	m_recycler->set_cache_fallback_enabled(ABS(m_scroll_offset - before) > viewport_main);
 	layout_children();
 }
 
@@ -1258,6 +1263,8 @@ void RecyclerView::set_scroll_offset_horizontal(int p_offset) {
 	if (m_scroll_offset_h != before) {
 		m_last_scroll_direction = m_scroll_offset_h > before ? 1 : -1;
 	}
+	const int viewport_main = (int)get_viewport_size().x;
+	m_recycler->set_cache_fallback_enabled(ABS(m_scroll_offset_h - before) > viewport_main);
 	layout_children();
 }
 
@@ -1377,6 +1384,7 @@ void RecyclerView::layout_children() {
 		queue_redraw();
 	} while (m_layout_requested_again);
 	m_layout_in_progress = false;
+	m_recycler->set_cache_fallback_enabled(false);
 	prefetch_adjacent();
 	if (m_item_touch_helper.is_valid()) {
 		// A swap relayout moved the dragged holder to its new slot; re-pin it to

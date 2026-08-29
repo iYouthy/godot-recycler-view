@@ -170,3 +170,36 @@ func test_scroll_and_insert_mid_animation_no_crash_created_bounded() -> void:
 	assert_that(adapter.created).is_less(45)
 	rv.free_items()
 	rv.free()
+
+
+# Dragging the scroll bar jumps the offset by far more than one viewport per
+# frame (the thumb tracks the cursor 1:1 over a much larger content range), so
+# the visible set is replaced entirely every frame. The cached holders' stored
+# positions never match the post-jump viewport, so the position-bound cache must
+# fall back to type-based reuse and the pool must absorb a full screen, or a
+# fresh holder is fabricated every frame (created grows without bound).
+func test_scroll_bar_drag_created_bounded() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	get_window().content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
+	var rv := RecyclerView.new()
+	rv.set_size(Vector2(600, 360))  # 15 visible items at 40px
+	var adapter := InsAdapter.new()
+	for i in 10000:
+		adapter.items.append(i)
+	rv.set_item_size(40)
+	rv.set_adapter(adapter)
+	var layout := LinearLayoutManager.new()
+	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
+	rv.set_layout(layout)
+	rv.set_scroll_bar(DefaultScrollBar.new())
+	get_tree().root.add_child(rv)
+	rv.request_layout()
+	await get_tree().process_frame
+	for i in 60:
+		rv.set_scroll_offset_horizontal((i + 1) * 680)  # ~17 items per jump
+		await get_tree().process_frame
+	# 15 visible + slack; far below 60 jumps (which used to reach ~195).
+	assert_that(adapter.created).is_less(40)
+	rv.free_items()
+	rv.free()

@@ -60,6 +60,28 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 		}
 	}
 
+	// 1.5 Cache fallback (big jumps only): a scroll-bar drag jumps the offset
+	// past the viewport each frame, so the exact-position match above misses and
+	// the cached holders would otherwise sit idle while fresh views are built.
+	// Only the RecyclerView enables this for large jumps; small scrolls keep the
+	// cache position-exact so a reverse scroll re-hits the recycled position.
+	if (m_cache_fallback) {
+		for (int i = 0; i < m_cached_views.size(); i++) {
+			Ref<ViewHolder> cached = m_cached_views[i];
+			if (cached->get_item_view_type() != type) {
+				continue;
+			}
+			m_cached_views.remove_at(i);
+			cached->reset_internal();
+			cached->set_item_view_type(type);
+			if (m_adapter->has_stable_ids()) {
+				cached->set_stable_id(m_adapter->get_item_id(p_position));
+			}
+			m_adapter->bind_view_holder(cached, p_position);
+			return cached;
+		}
+	}
+
 	// 2. Recycled pool, by view type.
 	void *pooled = m_pool.get_recycled_view(type);
 	if (pooled != nullptr) {

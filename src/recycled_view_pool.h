@@ -157,7 +157,10 @@ public:
 	}
 
 private:
-	static const int DEFAULT_MAX_SCRAP = 12;
+	// One screen of items plus slack: a scroll-bar drag jumps the viewport by
+	// far more than the position-bound cache can cover, so the pool must absorb
+	// a full screen of recycled holders to keep the steady-state reuse at 100%.
+	static const int DEFAULT_MAX_SCRAP = 20;
 
 	int64_t get_create_running_average(int p_view_type) const {
 		return get_create_running_average_ns(p_view_type);
