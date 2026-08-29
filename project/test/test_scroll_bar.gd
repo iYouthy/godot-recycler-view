@@ -50,6 +50,27 @@ func _make_rv(with_bar: bool) -> Dictionary:
 	return { "rv": rv, "adapter": adapter }
 
 
+func _make_h_rv(with_bar: bool) -> Dictionary:
+	get_window().size = Vector2i(1920, 1080)
+	get_window().content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
+	var rv := RecyclerView.new()
+	rv.set_size(Vector2(600, 360))
+	var adapter := BarAdapter.new()
+	adapter.count = 10000
+	rv.set_item_size(40)
+	rv.set_adapter(adapter)
+	var layout := LinearLayoutManager.new()
+	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
+	rv.set_layout(layout)
+	if with_bar:
+		rv.set_scroll_bar(DefaultScrollBar.new())
+	get_tree().root.add_child(rv)
+	rv.request_layout()
+	await get_tree().process_frame
+	return { "rv": rv, "adapter": adapter }
+
+
 func test_set_scroll_bar_attaches_as_child() -> void:
 	var s := await _make_rv(true)
 	var rv: RecyclerView = s.rv
@@ -148,5 +169,47 @@ func test_hide_delay_defaults_to_android_and_forwards() -> void:
 	rv.set_scroll_bar_hide_delay(1.0)
 	assert_that(rv.get_scroll_bar_hide_delay()).is_equal(1.0)
 	assert_that(bar.get_hide_delay()).is_equal(1.0)
+	rv.free_items()
+	rv.free()
+
+
+func test_horizontal_layout_picks_horizontal_axis_and_pins_bottom() -> void:
+	var s := await _make_h_rv(true)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_scroll_bar()
+	# A horizontal RV picks the horizontal axis for its bar, pinned to the bottom.
+	assert_that(bar.get_axis()).is_equal(RecyclerViewScrollBar.SCROLL_BAR_HORIZONTAL)
+	var rv_bottom := rv.get_global_rect().end.y
+	var bar_top := bar.get_global_rect().position.y
+	assert_that(absf(rv_bottom - bar_top - bar.get_thickness())).is_less(2.0)
+	rv.free_items()
+	rv.free()
+
+
+func test_horizontal_offset_follows_scroll() -> void:
+	var s := await _make_h_rv(true)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_scroll_bar()
+	rv.scroll_horizontally(400)
+	assert_that(bar.get_offset()).is_equal(400)
+	rv.scroll_horizontally(-100)
+	assert_that(bar.get_offset()).is_equal(300)
+	rv.free_items()
+	rv.free()
+
+
+func test_horizontal_thumb_moves_right_on_scroll() -> void:
+	var s := await _make_h_rv(true)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_scroll_bar()
+	# Content 400000px, viewport 600px: a tiny thumb pinned at the left.
+	var top: Rect2 = bar.get_thumb_rect()
+	assert_that(int(top.position.x)).is_equal(0)
+	assert_that(top.size.x).is_greater(0)
+	# Scroll to the middle of the content: the thumb moves right.
+	rv.scroll_horizontally(200000)
+	var mid: Rect2 = bar.get_thumb_rect()
+	assert_that(mid.position.x).is_greater(0)
+	assert_that(mid.position.x).is_greater(top.position.x)
 	rv.free_items()
 	rv.free()

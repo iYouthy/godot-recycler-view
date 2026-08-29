@@ -15,6 +15,7 @@ func _ready() -> void:
 	recycler_view.set_item_size(80)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
+	recycler_view.set_scroll_bar(DefaultScrollBar.new())
 	_update_counter()
 
 
@@ -23,9 +24,13 @@ func _process(_delta: float) -> void:
 
 
 func _update_counter() -> void:
-	counter_label.text = "visible %d / %d items | created %d | h-offset %d" % [
+	var bar := recycler_view.get_scroll_bar()
+	var thumb := Rect2()
+	if bar:
+		thumb = bar.get_thumb_rect()
+	counter_label.text = "visible %d / %d items | created %d | h-offset %d | thumb x %.0f w %.0f" % [
 		recycler_view.get_child_holder_count(), _adapter.items.size(), _adapter.created,
-		recycler_view.get_scroll_offset_horizontal(),
+		recycler_view.get_scroll_offset_horizontal(), thumb.position.x, thumb.size.x,
 	]
 
 
