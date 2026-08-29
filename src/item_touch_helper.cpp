@@ -314,17 +314,18 @@ Vector2 ItemTouchHelper::target_render() const {
 
 void ItemTouchHelper::update_dx_dy(const Vector2 &p_mouse) {
 	Vector2 delta = p_mouse - m_initial_mouse;
+	const real_t zero = static_cast<real_t>(0.0f);
 	if ((m_selected_flags & LEFT) == 0) {
-		delta.x = Math::max(0.0f, delta.x);
+		delta.x = Math::max(zero, delta.x);
 	}
 	if ((m_selected_flags & RIGHT) == 0) {
-		delta.x = Math::min(0.0f, delta.x);
+		delta.x = Math::min(zero, delta.x);
 	}
 	if ((m_selected_flags & UP) == 0) {
-		delta.y = Math::max(0.0f, delta.y);
+		delta.y = Math::max(zero, delta.y);
 	}
 	if ((m_selected_flags & DOWN) == 0) {
-		delta.y = Math::min(0.0f, delta.y);
+		delta.y = Math::min(zero, delta.y);
 	}
 	m_dx = delta;
 }
@@ -490,8 +491,8 @@ Ref<ViewHolder> ItemTouchHelper::choose_drop_target(const Ref<ViewHolder> &p_sel
 // --- Swipe commit ---
 
 void ItemTouchHelper::push_sample(const Vector2 &p_mouse) {
-	m_samples_h.push_back({ p_mouse.x, m_elapsed_ms });
-	m_samples_v.push_back({ p_mouse.y, m_elapsed_ms });
+	m_samples_h.push_back({ static_cast<float>(p_mouse.x), m_elapsed_ms });
+	m_samples_v.push_back({ static_cast<float>(p_mouse.y), m_elapsed_ms });
 	while (m_samples_h.size() > 5) {
 		m_samples_h.remove_at(0);
 	}
