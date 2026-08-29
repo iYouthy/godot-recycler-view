@@ -26,6 +26,7 @@
 #include "snap_helper.h"
 #include "sorted_list_gd.h"
 #include "span_size_lookup.h"
+#include "staggered_grid_layout_manager.h"
 #include "state.h"
 #include "view_holder.h"
 
@@ -57,6 +58,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_ABSTRACT_CLASS(LayoutManager);
 	GDREGISTER_CLASS(LinearLayoutManager);
 	GDREGISTER_CLASS(GridLayoutManager);
+	GDREGISTER_CLASS(StaggeredGridLayoutManager);
 	GDREGISTER_CLASS(SpanSizeLookup);
 	GDREGISTER_CLASS(ItemDecoration);
 	// Not abstract: GDScript subclasses extend ItemAnimator directly, and a
