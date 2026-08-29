@@ -35,7 +35,7 @@ func _make_vertical_parent() -> RecyclerView:
 	parent.set_size(Vector2(300, 600))
 	var adapter := PlainAdapter.new()
 	adapter.count = 30
-	parent.set_item_size(60)
+	parent.set_item_extent(60)
 	parent.set_adapter(adapter)
 	parent.set_layout(LinearLayoutManager.new())
 	parent.request_layout()
@@ -46,11 +46,11 @@ func _make_vertical_parent() -> RecyclerView:
 
 # Adds a child RV inside the parent's rect (as a topmost sibling Control, so it
 # receives input in its area and its ancestor chain runs through the parent).
-func _add_child_rv(parent: RecyclerView, pos: Vector2, size: Vector2, count: int, item_size: int, horizontal: bool) -> RecyclerView:
+func _add_child_rv(parent: RecyclerView, pos: Vector2, size: Vector2, count: int, item_extent: int, horizontal: bool) -> RecyclerView:
 	var child := RecyclerView.new()
 	child.position = pos
 	child.set_size(size)
-	child.set_item_size(item_size)
+	child.set_item_extent(item_extent)
 	var adapter := PlainAdapter.new()
 	adapter.count = count
 	child.set_adapter(adapter)
@@ -161,7 +161,7 @@ func test_standalone_horizontal_wheel_still_maps_to_axis() -> void:
 	rv.set_size(Vector2(300, 100))
 	var adapter := PlainAdapter.new()
 	adapter.count = 20
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
@@ -313,7 +313,7 @@ func test_crossing_child_boundary_does_not_jump() -> void:
 	parent.set_size(Vector2(360, 600))
 	var adapter := DemoAdapter.new()
 	adapter.count = 6
-	parent.set_item_size(48)
+	parent.set_item_extent(48)
 	parent.set_adapter(adapter)
 	parent.set_layout(LinearLayoutManager.new())
 	parent.add_item_decoration(DividerDecoration.new())
@@ -384,7 +384,7 @@ class DemoAdapter extends Adapter:
 			return 1
 		return 0
 
-	func _get_item_height(position: int) -> int:
+	func _get_item_extent(position: int) -> int:
 		if position == 1:
 			return sub_height
 		return 48
@@ -397,7 +397,7 @@ class DemoAdapter extends Adapter:
 			root.set_size(Vector2(360, sub_height))
 			var sub := RecyclerView.new()
 			sub.set_size(Vector2(360, sub_height))
-			sub.set_item_size(36)
+			sub.set_item_extent(36)
 			var a := PlainAdapter.new()
 			a.count = 15
 			sub.set_adapter(a)

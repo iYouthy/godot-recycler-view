@@ -15,7 +15,7 @@ func _ready() -> void:
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)
 	layout.set_span_size_lookup(GridAdapter.SpanLookup.new())
-	recycler_view.set_item_size(60)
+	recycler_view.set_item_extent(60)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
 	recycler_view.add_item_decoration(DividerDecoration.new())

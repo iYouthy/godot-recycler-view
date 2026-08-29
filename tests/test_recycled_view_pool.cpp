@@ -19,12 +19,12 @@ TEST_CASE("pool_put_get_lifo") {
 
 TEST_CASE("pool_capacity_bounds_by_default") {
 	RecycledViewPool pool;
-	// Default capacity is 5 per type.
-	for (int i = 0; i < 10; i++) {
+	// Default capacity is 20 per type; putting more trims the oldest.
+	for (int i = 0; i < 25; i++) {
 		pool.put_recycled_view((void *)(intptr_t)(i + 1), 0);
 	}
-	REQUIRE(pool.get_recycled_view_count(0) == 5);
-	REQUIRE(pool.size() == 5);
+	REQUIRE(pool.get_recycled_view_count(0) == 20);
+	REQUIRE(pool.size() == 20);
 }
 
 TEST_CASE("pool_set_max_recycled_views_trims") {

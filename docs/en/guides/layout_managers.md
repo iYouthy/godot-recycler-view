@@ -5,7 +5,7 @@
 
 ## LinearLayoutManager — one item per row / column
 
-The default list layout, with variable item heights.
+The default list layout, with variable item extents.
 
 ```gdscript
 var layout := LinearLayoutManager.new()
@@ -64,14 +64,14 @@ layout.set_span_count(2)
 rv.set_layout(layout)
 ```
 
-## Variable heights in one list
+## Variable extents in one list
 
-Item heights come from `_get_item_height` when overridden, otherwise from
-`rv.set_item_size`. Combine it with view types for a mixed feed (see
+Item extents come from `_get_item_extent` when overridden, otherwise from
+`rv.set_item_extent`. Combine it with view types for a mixed feed (see
 [multi_view_types](multi_view_types.md)):
 
 ```gdscript
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
     return 72 if items[position]["type"] == "user" else 48
 ```
 

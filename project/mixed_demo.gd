@@ -25,7 +25,7 @@ func _ready() -> void:
 				"is_read": i % 3 == 0,
 			})
 	var layout := LinearLayoutManager.new()
-	recycler_view.set_item_size(48)  # fallback height for items without one
+	recycler_view.set_item_extent(48)  # fallback height for items without one
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
 	recycler_view.add_item_decoration(DividerDecoration.new())

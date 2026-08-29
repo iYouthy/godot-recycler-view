@@ -11,7 +11,7 @@ var _adapter: NestedAdapter
 
 func _ready() -> void:
 	_adapter = NestedAdapter.new()
-	recycler_view.set_item_size(48)
+	recycler_view.set_item_extent(48)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
 	recycler_view.add_item_decoration(DividerDecoration.new())

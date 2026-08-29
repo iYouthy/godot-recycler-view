@@ -8,7 +8,7 @@ func _get_item_count() -> int:
 	return items.size()
 
 
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
 	# 瀑布流：item 高度不一，模拟图片卡片。
 	return 60 + (position * 47) % 121  # 60..180
 

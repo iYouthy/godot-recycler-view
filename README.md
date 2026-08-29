@@ -4,7 +4,7 @@ A faithful port of Android's [RecyclerView](https://developer.android.com/refere
 
 ```gdscript
 var rv := RecyclerView.new()
-rv.set_item_size(40)
+rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())                 # your Adapter subclass
 rv.set_layout(LinearLayoutManager.new())        # or Grid / Staggered
 add_child(rv)
@@ -20,7 +20,7 @@ Core list:
 - **RecyclerView** — virtualization, clipping, three-level view reuse (changed scrap → position-bound view cache → per-type recycled pool), prefetch.
 - **Adapter / ListAdapter** — mandatory `_create_item` / `_bind_item` / `_get_item_count`; `ListAdapter.submit_list()` diffs automatically.
 - **LayoutManagers** — `LinearLayoutManager`, `GridLayoutManager` (with `SpanSizeLookup`), `StaggeredGridLayoutManager` (masonry), vertical or horizontal, `reverse_layout`.
-- **Variable item heights and multiple view types.**
+- **Variable item extents and multiple view types.**
 
 Data updates:
 - `notify_item_*` incremental updates (insert / remove / move / change), queued and applied at frame end.
@@ -75,7 +75,7 @@ class MyAdapter extends Adapter:
 
 # somewhere in a scene script:
 var rv := RecyclerView.new()
-rv.set_item_size(40)
+rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
 rv.set_scroll_bar(DefaultScrollBar.new())      # optional
@@ -93,7 +93,7 @@ Open the `project/` folder in Godot and run any scene:
 | `recycler_demo.tscn` | Vertical list of 10k items; live random edits; created/visible counters |
 | `list_adapter_demo.tscn` | `ListAdapter` + `submit_list()` auto-diffing |
 | `multi_type_demo.tscn` | Multiple view types in one list |
-| `mixed_demo.tscn` | Mixed view types with variable heights |
+| `mixed_demo.tscn` | Mixed view types with variable extents |
 | `grid_demo.tscn` | `GridLayoutManager` with a `SpanSizeLookup` and dividers |
 | `staggered_demo.tscn` | `StaggeredGridLayoutManager` masonry |
 | `ops_demo.tscn` | Insert / remove / move / change update operations |
@@ -143,8 +143,8 @@ clone. The significant differences, and how each one is handled:
 - **Items are Controls, not Views.** An Android item is a `View` with `LayoutParams`, measured and
   laid out by the `LayoutManager`. Here an item is a `Control` wrapped in a `ViewHolder`; the
   layout managers position it with absolute rects and the RecyclerView clips to its viewport.
-  There is no measure/layout traversal — you give items a size through `_get_item_height` /
-  `set_item_size`.
+  There is no measure/layout traversal — you give items a size through `_get_item_extent` /
+  `set_item_extent`.
 - **Synchronous layout and diffing.** Android's `requestLayout()` is deferred to the next
   traversal and `ListAdapter.submitList()` diffs on a background thread. Here `request_layout()`
   runs the layout immediately and `submit_list()` diffs synchronously, so a call in the same

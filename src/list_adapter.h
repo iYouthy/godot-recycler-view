@@ -16,7 +16,7 @@ namespace godot {
 // a list plus a DiffUtilItemCallback; submit_list() diffs the previous list
 // against the new one and dispatches incremental updates to the attached
 // RecyclerView automatically. Extend in GDScript to provide _create_item /
-// _bind_item (and optionally _get_item_view_type / _get_item_height /
+// _bind_item (and optionally _get_item_view_type / _get_item_extent /
 // _get_item_id, reading data via get_item()). _get_item_count is provided:
 // it returns the current list size.
 class ListAdapter : public Adapter {

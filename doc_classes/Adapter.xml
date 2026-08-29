@@ -3,7 +3,7 @@
 	<brief_description>Base adapter that provides item Views to a RecyclerView.</brief_description>
 	<description>Adapter is the port of [i]RecyclerView.Adapter[/i]. A GDScript subclass must implement
 [method _get_item_count], [method _create_item] and [method _bind_item]; it may optionally
-override [method _get_item_view_type], [method _get_item_height] and [method _get_item_id].
+override [method _get_item_view_type], [method _get_item_extent] and [method _get_item_id].
 
 [b]Minimal subclass[/b]:
 [codeblock]
@@ -56,11 +56,11 @@ attached to a RecyclerView the notifications are forwarded to it automatically.<
 			<return type="int" />
 			<description>Must override. Returns the total number of items in the list.</description>
 		</method>
-		<method name="_get_item_height" qualifiers="virtual">
+		<method name="_get_item_extent" qualifiers="virtual">
 			<return type="int" />
 			<param index="0" name="position" type="int" />
 			<description>Optional. Returns the item's size along the scroll axis. Values &lt;= 0 fall back to the
-RecyclerView's [method RecyclerView.get_item_size]. Defaults to 0.</description>
+RecyclerView's [method RecyclerView.get_item_extent]. Defaults to 0.</description>
 		</method>
 		<method name="_get_item_id" qualifiers="virtual">
 			<return type="int" />

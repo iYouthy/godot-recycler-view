@@ -12,7 +12,7 @@ func _ready() -> void:
 	_adapter = OpsAdapter.new()
 	for i in 8:
 		_adapter.items.append("Item %d" % i)
-	recycler_view.set_item_size(40)
+	recycler_view.set_item_extent(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
 	recycler_view.set_item_animator(DefaultItemAnimator.new())

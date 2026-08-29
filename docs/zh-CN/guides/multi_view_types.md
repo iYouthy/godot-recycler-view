@@ -1,6 +1,6 @@
-# 多视图类型与可变高度
+# 多视图类型与可变长度
 
-> 一个列表、多种单元格，每种有自己的场景、高度与回收池。
+> 一个列表、多种单元格，每种有自己的场景、长度与回收池。
 > Demo：**multi_type_demo**、**mixed_demo**。
 
 ## 多视图类型
@@ -38,17 +38,17 @@ class MyAdapter extends Adapter:
 
 视图类型也能通过 `holder.get_item_view_type()` 在 `_bind_item` 里拿到，适合一个 bind 方法服务多种单元格。
 
-## 可变高度
+## 可变长度
 
-把 `_get_item_view_type` 与 `_get_item_height` 配对，让每种单元格自己决定高度。高度只需按位置返回，
+把 `_get_item_view_type` 与 `_get_item_extent` 配对，让每种单元格自己决定长度。长度只需按位置返回，
 布局管理器会根据它们构建偏移表。
 
 ```gdscript
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
     return 72 if _get_item_view_type(position) == 0 else 48
 ```
 
-比格子高或矮的条目，按上报的高度定位即可。
+比格子高或矮的条目，按上报的长度定位即可。
 
 ## 复用统计
 

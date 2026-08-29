@@ -19,7 +19,7 @@ class ChatAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return messages.size()
 
-	func _get_item_height(_p: int) -> int:
+	func _get_item_extent(_p: int) -> int:
 		return 48
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -39,7 +39,7 @@ func _ready() -> void:
 		_seq += 1
 	_adapter = ChatAdapter.new()
 	_adapter.messages = _messages
-	recycler_view.set_item_size(48)
+	recycler_view.set_item_extent(48)
 	recycler_view.set_adapter(_adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_reverse_layout(true)

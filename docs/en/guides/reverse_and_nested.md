@@ -56,7 +56,7 @@ class NestedAdapter extends Adapter:
             return 2                       # vertical sub-list
         return 0
 
-    func _get_item_height(position: int) -> int:
+    func _get_item_extent(position: int) -> int:
         if position == 0:
             return 64
         if position == 1:
@@ -71,7 +71,7 @@ class NestedAdapter extends Adapter:
             root.set_size(Vector2(360, 64))
             var chips := RecyclerView.new()
             chips.set_size(Vector2(360, 64))
-            chips.set_item_size(48)
+            chips.set_item_extent(48)
             chips.set_adapter(ChipAdapter.new())
             var layout := LinearLayoutManager.new()
             layout.set_orientation(LinearLayoutManager.HORIZONTAL)

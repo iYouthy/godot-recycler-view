@@ -30,7 +30,7 @@ func _ready() -> void:
 	for i in 10000:
 		_adapter.items.append(i)
 	var layout := LinearLayoutManager.new()
-	recycler_view.set_item_size(40)
+	recycler_view.set_item_extent(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
 	recycler_view.set_item_animator(DefaultItemAnimator.new())

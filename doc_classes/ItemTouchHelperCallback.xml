@@ -43,7 +43,7 @@ class Callback extends ItemTouchHelperCallback:
 		<method name="_get_move_threshold" qualifiers="virtual">
 			<return type="float" />
 			<param index="0" name="holder" type="ViewHolder" />
-			<description>Returns the drag swap threshold as a fraction of the item size (default 0.5).</description>
+			<description>Returns the drag swap threshold as a fraction of the item extent (default 0.5).</description>
 		</method>
 		<method name="_get_movement_flags" qualifiers="virtual">
 			<return type="int" />

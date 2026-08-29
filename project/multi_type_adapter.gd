@@ -2,7 +2,7 @@ class_name MultiTypeAdapter
 extends Adapter
 
 # Three view types (header / body / footer) in a repeating pattern, each with its
-# own color and text prefix. All share the RecyclerView's fixed item height.
+# own color and text prefix. All share the RecyclerView's fixed item extent.
 const COLORS := {
 	0: Color(0.45, 0.75, 1.0),  # header - blue
 	1: Color(1.0, 0.9, 0.6),    # body - amber

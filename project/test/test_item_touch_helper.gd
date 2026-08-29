@@ -67,7 +67,7 @@ func _make_setup(callback: TouchCallback = null) -> Dictionary:
 	var adapter := TouchAdapter.new()
 	for i in 10:
 		adapter.items.append(i)
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()

@@ -12,7 +12,7 @@ func _ready() -> void:
 		_adapter.items.append(i)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
-	recycler_view.set_item_size(80)
+	recycler_view.set_item_extent(80)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
 	recycler_view.set_scroll_bar(DefaultScrollBar.new())

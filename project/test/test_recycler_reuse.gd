@@ -15,7 +15,7 @@ class InsAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return items.size()
 
-	func _get_item_height(_p: int) -> int:
+	func _get_item_extent(_p: int) -> int:
 		return 40
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -39,7 +39,7 @@ func _make_rv(with_animator: bool) -> Dictionary:
 	var adapter := InsAdapter.new()
 	for i in 5:
 		adapter.items.append("i%d" % i)
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	if with_animator:
@@ -100,7 +100,7 @@ class LocalGridAdapter extends Adapter:
 	func _get_item_view_type(position: int) -> int:
 		return 0 if position % 10 == 0 else 1
 
-	func _get_item_height(position: int) -> int:
+	func _get_item_extent(position: int) -> int:
 		return 80 if position % 10 == 0 else 50 + (position % 3) * 10
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -126,7 +126,7 @@ func test_grid_mixed_view_types_scroll_created_bounded() -> void:
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)
 	layout.set_span_size_lookup(LocalGridAdapter.Lookup.new())
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	rv.set_layout(layout)
 	get_tree().root.add_child(rv)
@@ -154,7 +154,7 @@ func test_scroll_and_insert_mid_animation_no_crash_created_bounded() -> void:
 	var adapter := InsAdapter.new()
 	for i in 10000:
 		adapter.items.append(i)
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.set_item_animator(DefaultItemAnimator.new())
@@ -187,7 +187,7 @@ func test_scroll_bar_drag_created_bounded() -> void:
 	var adapter := InsAdapter.new()
 	for i in 10000:
 		adapter.items.append(i)
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)

@@ -47,7 +47,7 @@ func _make_setup() -> Dictionary:
 	rv.set_size(Vector2(200, 600))
 	var adapter := ListAdapterImpl.new()
 	adapter.set_diff_callback(ItemCallback.new())
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()

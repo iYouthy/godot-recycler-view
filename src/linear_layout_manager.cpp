@@ -50,7 +50,7 @@ Rect2 LinearLayoutManager::get_item_rect(RecyclerView *p_recycler_view, int p_po
 			? p_recycler_view->get_scroll_offset()
 			: p_recycler_view->get_scroll_offset_horizontal();
 	const Vector2 viewport = p_recycler_view->get_viewport_size();
-	const int main_length = p_recycler_view->get_item_height(p_position);
+	const int main_length = p_recycler_view->get_item_extent(p_position);
 	// reverse_layout flips only the content->screen mapping (item bottom-aligned
 	// instead of top-aligned); the scroll offset space is unchanged.
 	int offset = m_offsets[p_position] - scroll;
@@ -72,7 +72,7 @@ void LinearLayoutManager::build_layout(RecyclerView *p_recycler_view, int p_item
 	m_offsets.resize(p_item_count + 1);
 	m_offsets.write[0] = 0;
 	for (int i = 0; i < p_item_count; i++) {
-		m_offsets.write[i + 1] = m_offsets[i] + p_recycler_view->get_item_height(i);
+		m_offsets.write[i + 1] = m_offsets[i] + p_recycler_view->get_item_extent(i);
 	}
 	m_offsets_dirty = false;
 	m_cached_item_count = p_item_count;
@@ -95,7 +95,7 @@ int LinearLayoutManager::last_visible_position(int p_scroll_end, int p_item_coun
 
 void LinearLayoutManager::position_holder(RecyclerView *p_recycler_view, const Ref<ViewHolder> &p_holder, int p_position, int p_scroll_offset) const {
 	const Vector2 viewport = p_recycler_view->get_viewport_size();
-	const int main_length = p_recycler_view->get_item_height(p_position);
+	const int main_length = p_recycler_view->get_item_extent(p_position);
 	int offset = m_offsets[p_position] - p_scroll_offset;
 	if (is_reverse_layout()) {
 		const int viewport_main = m_orientation == VERTICAL ? (int)viewport.y : (int)viewport.x;

@@ -51,7 +51,7 @@ func _await_idle(rv: RecyclerView, max_frames: int = 400) -> void:
 		await get_tree().process_frame
 
 
-func _make_rv(width: int, item_size: int, count: int, helper: SnapHelper) -> RecyclerView:
+func _make_rv(width: int, item_extent: int, count: int, helper: SnapHelper) -> RecyclerView:
 	get_window().size = Vector2i(1920, 1080)
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	var rv := RecyclerView.new()
@@ -59,7 +59,7 @@ func _make_rv(width: int, item_size: int, count: int, helper: SnapHelper) -> Rec
 	rv.set_size(Vector2(width, 600))
 	var adapter := CardAdapter.new()
 	adapter.count = count
-	rv.set_item_size(item_size)
+	rv.set_item_extent(item_extent)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)

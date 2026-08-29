@@ -50,7 +50,7 @@ func _make_setup() -> Dictionary:
 	rv.set_size(Vector2(200, 600))
 	var adapter := PlainAdapter.new()
 	adapter.count = 10
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -144,7 +144,7 @@ func test_grid_with_divider() -> void:
 	rv.set_size(Vector2(360, 600))
 	var adapter := PlainAdapter.new()
 	adapter.count = 12
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)

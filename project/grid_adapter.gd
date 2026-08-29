@@ -23,7 +23,7 @@ func _get_item_view_type(position: int) -> int:
 	return 0 if position % HEADER_EVERY == 0 else 1
 
 
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
 	return 80 if position % HEADER_EVERY == 0 else 50 + (position % 3) * 10
 
 

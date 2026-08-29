@@ -1,6 +1,6 @@
-# Multi view types & variable heights
+# Multi view types & variable extents
 
-> One list, several kinds of cells, each with its own scene, height and recycled pool.
+> One list, several kinds of cells, each with its own scene, extent and recycled pool.
 > Demos: **multi_type_demo**, **mixed_demo**.
 
 ## Multiple view types
@@ -40,18 +40,18 @@ class MyAdapter extends Adapter:
 The view type also flows to `_bind_item` via `holder.get_item_view_type()`, which is handy
 when one bind method serves several cell kinds.
 
-## Variable heights
+## Variable extents
 
-Pair `_get_item_view_type` with `_get_item_height` so each cell kind sizes itself. Heights
+Pair `_get_item_view_type` with `_get_item_extent` so each cell kind sizes itself. Extents
 only need to be per-position; the layout manager builds an offset table from them.
 
 ```gdscript
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
     return 72 if _get_item_view_type(position) == 0 else 48
 ```
 
 Items that are taller or shorter than the row/grid slot are simply positioned by their
-reported height.
+reported extent.
 
 ## Reuse accounting
 

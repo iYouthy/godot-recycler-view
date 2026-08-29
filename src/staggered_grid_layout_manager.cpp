@@ -73,7 +73,7 @@ void StaggeredGridLayoutManager::build_layout(RecyclerView *p_recycler_view, int
 			}
 		}
 		const int top = col_ends[col];
-		const int end = top + p_recycler_view->get_item_height(pos);
+		const int end = top + p_recycler_view->get_item_extent(pos);
 		col_ends.write[col] = end;
 
 		m_column_of_position.write[pos] = col;
@@ -140,7 +140,7 @@ void StaggeredGridLayoutManager::position_holder(RecyclerView *p_recycler_view, 
 	const int col = m_column_of_position[p_position];
 	const int top = m_col_top_of_position[p_position];
 	int main_offset = top - p_scroll_offset;
-	const int main_length = p_recycler_view->get_item_height(p_position);
+	const int main_length = p_recycler_view->get_item_extent(p_position);
 	if (is_reverse_layout()) {
 		const int viewport_main = m_orientation == VERTICAL
 				? (int)p_recycler_view->get_viewport_size().y
@@ -188,7 +188,7 @@ Rect2 StaggeredGridLayoutManager::get_item_rect(RecyclerView *p_recycler_view, i
 	const int col = m_column_of_position[p_position];
 	const int top = m_col_top_of_position[p_position];
 	int main_offset = top - scroll;
-	const int main_length = p_recycler_view->get_item_height(p_position);
+	const int main_length = p_recycler_view->get_item_extent(p_position);
 	if (is_reverse_layout()) {
 		const int viewport_main = m_orientation == VERTICAL
 				? (int)p_recycler_view->get_viewport_size().y

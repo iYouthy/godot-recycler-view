@@ -4,7 +4,7 @@ Android [RecyclerView](https://developer.android.com/reference/androidx/recycler
 
 ```gdscript
 var rv := RecyclerView.new()
-rv.set_item_size(40)
+rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())                 # 你的 Adapter 子类
 rv.set_layout(LinearLayoutManager.new())        # 或 Grid / Staggered
 add_child(rv)
@@ -20,7 +20,7 @@ add_child(rv)
 - **RecyclerView** — 虚拟化、裁剪、三级视图复用（变更暂存区 → 按 position 的视图缓存 → 按类型的回收池）、预取。
 - **Adapter / ListAdapter** — 必须实现 `_create_item` / `_bind_item` / `_get_item_count`；`ListAdapter.submit_list()` 自动 diff。
 - **布局管理器** — `LinearLayoutManager`、`GridLayoutManager`（配合 `SpanSizeLookup`）、`StaggeredGridLayoutManager`（瀑布流），支持垂直/水平与 `reverse_layout`。
-- **可变条目高度与多视图类型。**
+- **可变条目长度与多视图类型。**
 
 数据更新：
 - `notify_item_*` 增量更新（插入/移除/移动/变化），帧末统一应用。
@@ -75,7 +75,7 @@ class MyAdapter extends Adapter:
 
 # 在某场景脚本中：
 var rv := RecyclerView.new()
-rv.set_item_size(40)
+rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
 rv.set_scroll_bar(DefaultScrollBar.new())      # 可选
@@ -93,7 +93,7 @@ add_child(rv)
 | `recycler_demo.tscn` | 一万条数据的垂直列表；实时随机编辑；created/visible 计数 |
 | `list_adapter_demo.tscn` | `ListAdapter` + `submit_list()` 自动 diff |
 | `multi_type_demo.tscn` | 单列表多视图类型 |
-| `mixed_demo.tscn` | 混合视图类型 + 可变高度 |
+| `mixed_demo.tscn` | 混合视图类型 + 可变长度 |
 | `grid_demo.tscn` | `GridLayoutManager` + `SpanSizeLookup` + 分隔线 |
 | `staggered_demo.tscn` | `StaggeredGridLayoutManager` 瀑布流 |
 | `ops_demo.tscn` | 插入/移除/移动/变化更新操作 |
@@ -134,7 +134,7 @@ scons tests=yes && tests/bin/test_runner
 这是一个功能性移植，把 Android 的 API 适配到 Godot 的习惯用法，而非逐行克隆。显著差异及各自的处理方式：
 
 - **回调而非监听器 / signal。** Android 通过注册在视图上的 Java 接口（`OnScrollListener`、`ItemTouchHelper.Callback`、`DiffUtil.ItemCallback`…）驱动行为；Godot 没有这套接口体系，因此本移植改用 **GDScript 虚方法**：继承并覆写 `_create_item`、`_bind_item`、`_get_item_count`、`_on_scrolled`、`_get_movement_flags`、`_are_items_the_same` 等。RecyclerView 本身不发出任何 Godot signal。
-- **条目是 Control 而不是 View。** Android 的条目是带 `LayoutParams` 的 `View`，由 `LayoutManager` 测量并布局；这里条目是包在 `ViewHolder` 里的一个 `Control`，布局管理器用绝对矩形定位它，RecyclerView 裁剪到自己的视口。没有 measure/layout 遍历——通过 `_get_item_height` / `set_item_size` 给出条目尺寸即可。
+- **条目是 Control 而不是 View。** Android 的条目是带 `LayoutParams` 的 `View`，由 `LayoutManager` 测量并布局；这里条目是包在 `ViewHolder` 里的一个 `Control`，布局管理器用绝对矩形定位它，RecyclerView 裁剪到自己的视口。没有 measure/layout 遍历——通过 `_get_item_extent` / `set_item_extent` 给出条目尺寸即可。
 - **布局与 diff 都是同步的。** Android 的 `requestLayout()` 延迟到下一次遍历，`ListAdapter.submitList()` 在后台线程 diff；这里 `request_layout()` 立即执行布局，`submit_list()` 同步 diff，同一帧内的调用立刻能看到新状态。`notify_item_*` 更新仍像 Android 一样在帧末批量应用。
 - **统一的滚动空间。** Android 按像素滚动 `ViewGroup` 并按自己的约定上报 `dx`/`dy`；本移植保留相同的*内容偏移*模型（`get_scroll_offset`，clamp 到 `[0, content − viewport]`），但用自绘 clip + 偏移实现而非原生子节点滚动。手势、滚轮、fling、settle、ScrollBar、`ScrollListener` 全部共享这同一套空间，彼此之间无需换算。
 - **复用以 position/type 为键，而非 stable id。** Android 的 `Recycler` 在位置变动时能通过 **stable id** 的 scrap 复用 holder；这里 stable id 会被记录（`has_stable_ids` / `get_item_id`），但视图缓存按精确位置、回收池按类型键控，复用发生在位置/类型层面而非 stable id。

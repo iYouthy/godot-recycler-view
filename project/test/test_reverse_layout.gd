@@ -11,7 +11,7 @@ class BarAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return count
 
-	func _get_item_height(_p: int) -> int:
+	func _get_item_extent(_p: int) -> int:
 		return 40
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -35,7 +35,7 @@ func _make_rv(count: int) -> Dictionary:
 	rv.set_size(Vector2(360, 600))
 	var adapter := BarAdapter.new()
 	adapter.count = count
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	get_tree().root.add_child(rv)
 	rv.request_layout()

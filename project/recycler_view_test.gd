@@ -8,7 +8,7 @@ class MyAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return 50
 
-	func _get_item_height(position: int) -> int:
+	func _get_item_extent(position: int) -> int:
 		return 60
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:

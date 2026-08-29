@@ -24,7 +24,7 @@ func _get_item_view_type(position: int) -> int:
 	return TYPE_USER if items[position]["type"] == "user" else TYPE_MESSAGE
 
 
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
 	return USER_HEIGHT if _get_item_view_type(position) == TYPE_USER else MESSAGE_HEIGHT
 
 

@@ -39,13 +39,13 @@ Vector<int> calculate_item_borders(int p_span_count, int p_total_space) {
 	int consumed_pixels = 0;
 	int additional_size = 0;
 	for (int i = 1; i <= p_span_count; i++) {
-		int item_size = size_per_span;
+		int item_extent = size_per_span;
 		additional_size += remainder;
 		if (additional_size > 0 && (p_span_count - additional_size) < remainder) {
-			item_size += 1;
+			item_extent += 1;
 			additional_size -= p_span_count;
 		}
-		consumed_pixels += item_size;
+		consumed_pixels += item_extent;
 		borders.write[i] = consumed_pixels;
 	}
 	return borders;

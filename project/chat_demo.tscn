@@ -15,7 +15,7 @@ layout_mode = 2
 text = "reverse_layout 聊天列表 — 最新消息在底部，滚轮上滑看历史；「发送」插入新消息并平滑回到底部"
 
 [node name="RecyclerView" type="RecyclerView" parent="." unique_id=1655469554]
-item_size = 48
+item_extent = 48
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

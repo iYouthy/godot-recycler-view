@@ -15,7 +15,7 @@ layout_mode = 2
 text = "自定义滚动条（16px 胶囊样式）— 滚轮 / 拖 thumb / 点 track 均可滚动"
 
 [node name="RecyclerView" type="RecyclerView" parent="." unique_id=684342593]
-item_size = 60
+item_extent = 60
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

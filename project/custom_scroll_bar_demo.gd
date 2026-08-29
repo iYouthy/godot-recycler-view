@@ -15,7 +15,7 @@ class DemoAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return count
 
-	func _get_item_height(_p: int) -> int:
+	func _get_item_extent(_p: int) -> int:
 		return 60
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -32,7 +32,7 @@ class DemoAdapter extends Adapter:
 
 func _ready() -> void:
 	var adapter := DemoAdapter.new()
-	recycler_view.set_item_size(60)
+	recycler_view.set_item_extent(60)
 	recycler_view.set_adapter(adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
 	recycler_view.set_scroll_bar(CustomScrollBar.new())

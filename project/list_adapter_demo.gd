@@ -39,7 +39,7 @@ var _last_action := ""
 func _ready() -> void:
 	_adapter = UserListAdapter.new()
 	_adapter.set_diff_callback(UserCallback.new())
-	recycler_view.set_item_size(40)
+	recycler_view.set_item_extent(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
 	recycler_view.set_item_animator(DefaultItemAnimator.new())

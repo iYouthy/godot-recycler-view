@@ -10,7 +10,7 @@ large lists render with a constant number of item Controls.
 [b]Typical setup[/b] in GDScript:
 [codeblock]
 var rv := RecyclerView.new()
-rv.set_item_size(40)                     # default item size along the scroll axis
+rv.set_item_extent(40)                     # default item extent along the scroll axis
 rv.set_adapter(my_adapter)                # an Adapter (or ListAdapter) subclass
 rv.set_layout(LinearLayoutManager.new())  # or GridLayoutManager / StaggeredGridLayoutManager
 add_child(rv)
@@ -83,11 +83,11 @@ Control resources held by the RecyclerView.</description>
 			<return type="int" />
 			<description>Returns the number of attached item decorations.</description>
 		</method>
-		<method name="get_item_height" qualifiers="const">
+		<method name="get_item_extent" qualifiers="const">
 			<return type="int" />
 			<param index="0" name="position" type="int" />
 			<description>Returns the size of the item at [code]position[/code] along the scroll axis, from
-[method Adapter._get_item_height] when overridden, otherwise the default [method get_item_size].</description>
+[method Adapter._get_item_extent] when overridden, otherwise the default [method get_default_item_extent].</description>
 		</method>
 		<method name="get_item_insets" qualifiers="const">
 			<return type="Vector4" />
@@ -294,7 +294,7 @@ the bottom of a chat list.</description>
 	<members>
 		<member name="adapter" type="Adapter" setter="set_adapter" getter="get_adapter">The data adapter providing items.</member>
 		<member name="clip_contents" type="bool" setter="set_clip_contents" getter="is_clipping_contents" overrides="Control" default="true" />
-		<member name="item_size" type="int" setter="set_item_size" getter="get_item_size" default="64">Default item size along the scroll axis (used when the adapter does not override heights).</member>
+		<member name="item_extent" type="int" setter="set_item_extent" getter="get_default_item_extent" default="64">Default item extent along the scroll axis (used when the adapter does not override per-item extents).</member>
 		<member name="layout" type="LayoutManager" setter="set_layout" getter="get_layout">The layout manager that positions items.</member>
 		<member name="scroll_bar_auto_hide" type="bool" setter="set_scroll_bar_auto_hide" getter="get_scroll_bar_auto_hide" default="true">Whether the scroll bar fades out when idle.</member>
 		<member name="scroll_bar_hide_delay" type="float" setter="set_scroll_bar_hide_delay" getter="get_scroll_bar_hide_delay" default="0.5">Seconds the scroll bar stays visible after the last activity.</member>

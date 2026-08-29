@@ -10,7 +10,7 @@
 namespace godot {
 
 // Port of LinearLayoutManager. Lays items out in a single row/column, supporting
-// variable item heights. A cumulative offset table maps each position to its
+// variable item extents. A cumulative offset table maps each position to its
 // start coordinate; virtualization instantiates only the items intersecting the
 // viewport. The layout-model hooks (build_layout / content_size /
 // first/last_visible_position / position_holder) are overridable by subclasses

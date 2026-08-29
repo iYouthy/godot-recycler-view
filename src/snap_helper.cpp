@@ -132,8 +132,8 @@ int SnapHelper::fling_settle_duration_ms(int p_distance) const {
 
 int SnapHelper::target_offset_for(RecyclerView *p_recycler_view, int p_position) const {
 	const int start = p_recycler_view->get_layout()->get_position_offset(p_position);
-	const float item_size = (float)p_recycler_view->get_item_height(p_position);
-	return start + (int)(item_size / 2.0f - container_center(p_recycler_view));
+	const float item_extent = (float)p_recycler_view->get_item_extent(p_position);
+	return start + (int)(item_extent / 2.0f - container_center(p_recycler_view));
 }
 
 bool SnapHelper::on_fling(float p_velocity) {
@@ -223,7 +223,7 @@ int LinearSnapHelper::estimate_next_position_diff_for_fling(RecyclerView *p_recy
 		return 0;
 	}
 	// Signed inertial distance the RV's own fling would travel for this velocity
-	// (same spline physics), divided by the average item size.
+	// (same spline physics), divided by the average item extent.
 	const int distance = FlingScroller::predict_end_distance(p_velocity);
 	return (int)Math::round((float)distance / distance_per_child);
 }

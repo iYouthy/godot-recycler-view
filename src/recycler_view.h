@@ -162,11 +162,11 @@ public:
 	void set_vertical_wheel_scrolls_horizontal(bool p_enabled);
 	bool get_vertical_wheel_scrolls_horizontal() const { return m_vertical_wheel_scrolls_horizontal; }
 
-	void set_item_size(int p_size);
-	int get_item_size() const { return m_item_size; }
-	// Height of the item at the given position along the scroll axis: the
-	// adapter's variable height, or the default item size when not provided.
-	int get_item_height(int p_position) const;
+	void set_item_extent(int p_size);
+	int get_default_item_extent() const { return m_item_extent; }
+	// Extent of the item at the given position along the scroll axis: the
+	// adapter's variable extent, or the default item extent when not provided.
+	int get_item_extent(int p_position) const;
 
 	// Prefetch toggle (default on): after a layout, holders for the positions
 	// just past the viewport are pre-created into the recycled pool.
@@ -307,9 +307,9 @@ private:
 	// Drives the prefetch so it pre-creates the runway on the correct side.
 	int m_last_scroll_direction = 0;
 	bool m_prefetch_enabled = true;
-	// Item size along the scroll axis, used by the LayoutManager. In a full port
+	// Item extent along the scroll axis, used by the LayoutManager. In a full port
 	// this is derived from the adapter/measurement; fixed for the first slice.
-	int m_item_size = 64;
+	int m_item_extent = 64;
 	bool m_layout_in_progress = false;
 
 	// Scroll state machine (Android's SCROLL_STATE_IDLE/DRAGGING/SETTLING).

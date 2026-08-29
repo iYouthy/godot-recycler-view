@@ -34,7 +34,7 @@ func _make_setup() -> Dictionary:
 	rv.position = Vector2(0, 0)
 	rv.set_size(Vector2(200, 200))  # 5 visible items at 40px
 	var adapter := PrefetchAdapter.new()
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()

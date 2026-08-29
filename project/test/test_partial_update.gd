@@ -65,7 +65,7 @@ func _make_setup() -> Dictionary:
 	var names := ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace", "Heidi"]
 	for i in names.size():
 		adapter.users.append({"id": i, "name": names[i], "avatar": i % 4})
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.set_item_animator(DefaultItemAnimator.new())

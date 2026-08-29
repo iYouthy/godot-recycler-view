@@ -5,7 +5,7 @@
 
 ## LinearLayoutManager —— 一行 / 一列
 
-默认的列表布局，支持可变条目高度。
+默认的列表布局，支持可变条目长度。
 
 ```gdscript
 var layout := LinearLayoutManager.new()
@@ -61,13 +61,13 @@ layout.set_span_count(2)
 rv.set_layout(layout)
 ```
 
-## 一个列表里的可变高度
+## 一个列表里的可变长度
 
-条目高度来自 `_get_item_height`（覆写时）或 `rv.set_item_size`。与视图类型配合可做混合信息流（见
+条目长度来自 `_get_item_extent`（覆写时）或 `rv.set_item_extent`。与视图类型配合可做混合信息流（见
 [多视图类型](multi_view_types.md)）：
 
 ```gdscript
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
     return 72 if items[position]["type"] == "user" else 48
 ```
 

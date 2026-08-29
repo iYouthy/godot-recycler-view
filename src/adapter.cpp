@@ -65,7 +65,7 @@ void Adapter::_bind_methods() {
 	GDVIRTUAL_BIND(_bind_item_with_payload, "holder", "position", "payload");
 	GDVIRTUAL_BIND(_get_item_count);
 	GDVIRTUAL_BIND(_get_item_view_type, "position");
-	GDVIRTUAL_BIND(_get_item_height, "position");
+	GDVIRTUAL_BIND(_get_item_extent, "position");
 	GDVIRTUAL_BIND(_get_item_id, "position");
 	GDVIRTUAL_BIND(_on_item_recycled, "holder");
 	GDVIRTUAL_BIND(_on_failed_to_recycle_view, "holder");
@@ -122,9 +122,9 @@ int Adapter::get_item_view_type(int p_position) {
 	return result;
 }
 
-int Adapter::get_item_height(int p_position) {
+int Adapter::get_item_extent(int p_position) {
 	int result = -1;
-	GDVIRTUAL_CALL(_get_item_height, p_position, result);
+	GDVIRTUAL_CALL(_get_item_extent, p_position, result);
 	return result;
 }
 

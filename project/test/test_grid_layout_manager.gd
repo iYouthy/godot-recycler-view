@@ -10,7 +10,7 @@ class CellAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return count
 
-	func _get_item_height(position: int) -> int:
+	func _get_item_extent(position: int) -> int:
 		return 60
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -30,7 +30,7 @@ class MixedCellAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return count
 
-	func _get_item_height(position: int) -> int:
+	func _get_item_extent(position: int) -> int:
 		return 80 if position == 0 else 40 + (position % 3) * 10
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -53,7 +53,7 @@ func test_grid_rows_and_columns() -> void:
 	rv.set_size(Vector2(360, 600))
 	var adapter := CellAdapter.new()
 	adapter.count = 10
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)
@@ -88,7 +88,7 @@ func test_header_spans_full_row_and_row_height_is_max() -> void:
 	rv.set_size(Vector2(360, 600))
 	var adapter := MixedCellAdapter.new()
 	adapter.count = 10
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)
@@ -120,7 +120,7 @@ func test_grid_scroll_virtualizes_without_overlap() -> void:
 	rv.set_size(Vector2(360, 600))
 	var adapter := CellAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	# This test asserts creation stays bounded (virtualization); prefetch
 	# deliberately pre-creates extra holders, so it is disabled here.
 	rv.set_prefetch_enabled(false)
@@ -158,7 +158,7 @@ func test_span_count_change_rebuilds_rows() -> void:
 	rv.set_size(Vector2(360, 600))
 	var adapter := CellAdapter.new()
 	adapter.count = 10
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)

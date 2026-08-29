@@ -34,7 +34,7 @@ class MyAdapter extends Adapter:
 
 # in a scene script:
 var rv := RecyclerView.new()
-rv.set_item_size(40)                # default item size along the scroll axis
+rv.set_item_extent(40)                # default item extent along the scroll axis
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
 rv.set_scroll_bar(DefaultScrollBar.new())   # optional
@@ -42,8 +42,8 @@ add_child(rv)
 ```
 
 The three mandatory overrides are `_get_item_count`, `_create_item` and `_bind_item`.
-`set_item_size` sets the default height for all items; override `_get_item_height` in the
-adapter when items have different heights.
+`set_item_extent` sets the default extent for all items; override `_get_item_extent` in the
+adapter when items have different extents.
 
 ## Changing data
 

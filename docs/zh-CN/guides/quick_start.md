@@ -34,7 +34,7 @@ class MyAdapter extends Adapter:
 
 # 场景脚本里：
 var rv := RecyclerView.new()
-rv.set_item_size(40)                # 沿滚动轴的默认条目尺寸
+rv.set_item_extent(40)                # 沿滚动轴的默认条目尺寸
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
 rv.set_scroll_bar(DefaultScrollBar.new())   # 可选
@@ -42,7 +42,7 @@ add_child(rv)
 ```
 
 三个必须实现的虚方法是 `_get_item_count`、`_create_item`、`_bind_item`。
-`set_item_size` 设置所有条目的默认高度；条目高度不一致时在 adapter 里覆写 `_get_item_height`。
+`set_item_extent` 设置所有条目的默认长度；条目长度不一致时在 adapter 里覆写 `_get_item_extent`。
 
 ## 修改数据
 

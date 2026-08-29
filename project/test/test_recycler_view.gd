@@ -28,7 +28,7 @@ func _make_setup() -> Dictionary:
 	rv.set_size(Vector2(200, 600))
 	var adapter := ItemAdapter.new()
 	var layout := LinearLayoutManager.new()
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	# These tests assert creation stays bounded (virtualization / incremental
 	# updates); prefetch deliberately pre-creates extra holders, so it is off.
 	rv.set_prefetch_enabled(false)
@@ -192,7 +192,7 @@ func test_release_outside_window_clears_drag() -> void:
 	rv.set_size(Vector2(200, 600))
 	var adapter := ItemAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -294,7 +294,7 @@ func _make_value_setup() -> Dictionary:
 	var adapter := ValueAdapter.new()
 	for i in 100:
 		adapter.items.append(i)
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_prefetch_enabled(false)  # bounded-creation asserts, see _make_setup
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
@@ -404,7 +404,7 @@ func test_diff_dispatch_drives_incremental_update() -> void:
 	var adapter := ValueAdapter.new()
 	for i in 20:
 		adapter.items.append(i)
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -439,7 +439,7 @@ func test_multiple_view_types_reuse_and_match() -> void:
 	rv.set_size(Vector2(200, 600))
 	var adapter := MultiTypeAdapter.new()
 	adapter.count = 1000
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_prefetch_enabled(false)  # bounded-creation asserts
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
@@ -476,7 +476,7 @@ func test_variable_item_heights_layout() -> void:
 			adapter.items.append({ "type": "user", "name": "U%d" % i, "age": 20 })
 		else:
 			adapter.items.append({ "type": "message", "content": "M%d" % i, "is_read": false })
-	rv.set_item_size(48)
+	rv.set_item_extent(48)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -510,7 +510,7 @@ func test_variable_heights_scroll_reuses_and_does_not_overlap() -> void:
 			adapter.items.append({ "type": "user", "name": "U%d" % i, "age": 20 })
 		else:
 			adapter.items.append({ "type": "message", "content": "M%d" % i, "is_read": false })
-	rv.set_item_size(48)
+	rv.set_item_extent(48)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -538,7 +538,7 @@ func test_horizontal_orientation_layouts_and_scrolls() -> void:
 	rv.set_size(Vector2(640, 360))
 	var adapter := ItemAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(80)
+	rv.set_item_extent(80)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
@@ -570,7 +570,7 @@ func test_horizontal_wheel_behavior_toggle() -> void:
 	rv.set_size(Vector2(640, 360))
 	var adapter := ItemAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(80)
+	rv.set_item_extent(80)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)

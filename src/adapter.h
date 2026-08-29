@@ -53,7 +53,7 @@ public:
 	GDVIRTUAL3(_bind_item_with_payload, Ref<ViewHolder>, int, Variant)
 	GDVIRTUAL0R(int, _get_item_count)
 	GDVIRTUAL1R(int, _get_item_view_type, int)
-	GDVIRTUAL1R(int, _get_item_height, int)
+	GDVIRTUAL1R(int, _get_item_extent, int)
 	GDVIRTUAL1R(int64_t, _get_item_id, int)
 	GDVIRTUAL1(_on_item_recycled, Ref<ViewHolder>)
 	GDVIRTUAL1R(bool, _on_failed_to_recycle_view, Ref<ViewHolder>)
@@ -70,9 +70,9 @@ public:
 	// their own state instead of a script _get_item_count override.
 	virtual int get_item_count();
 	int get_item_view_type(int p_position);
-	// Returns the item's height along the scroll axis, or <= 0 for the
-	// RecyclerView's default item size (variable heights are optional).
-	int get_item_height(int p_position);
+	// Returns the item's extent along the scroll axis, or <= 0 for the
+	// RecyclerView's default item extent (variable extents are optional).
+	int get_item_extent(int p_position);
 	int64_t get_item_id(int p_position);
 	bool has_stable_ids() const { return m_has_stable_ids; }
 	void set_has_stable_ids(bool p_has_stable_ids);

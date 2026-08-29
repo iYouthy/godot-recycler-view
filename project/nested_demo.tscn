@@ -15,7 +15,7 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [node name="RecyclerView" type="RecyclerView" parent="." unique_id=1040747389]
-item_size = 48
+item_extent = 48
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

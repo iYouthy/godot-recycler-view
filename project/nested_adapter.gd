@@ -21,7 +21,7 @@ func _get_item_view_type(position: int) -> int:
 	return 0  # plain label
 
 
-func _get_item_height(position: int) -> int:
+func _get_item_extent(position: int) -> int:
 	if position == 0:
 		return 64
 	if position == 1:
@@ -39,7 +39,7 @@ func _create_item(parent: Control, view_type: int) -> ViewHolder:
 		var chips := RecyclerView.new()
 		chips.position = Vector2(0, 0)
 		chips.set_size(Vector2(360, 64))
-		chips.set_item_size(48)
+		chips.set_item_extent(48)
 		chips.set_adapter(ChipAdapter.new())
 		var layout := LinearLayoutManager.new()
 		layout.set_orientation(LinearLayoutManager.HORIZONTAL)
@@ -54,7 +54,7 @@ func _create_item(parent: Control, view_type: int) -> ViewHolder:
 		var sub := RecyclerView.new()
 		sub.position = Vector2(0, 0)
 		sub.set_size(Vector2(360, 320))
-		sub.set_item_size(36)
+		sub.set_item_extent(36)
 		sub.set_adapter(SubAdapter.new())
 		sub.set_layout(LinearLayoutManager.new())
 		sub.request_layout()

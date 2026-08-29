@@ -13,7 +13,7 @@ func _ready() -> void:
 	_adapter = ItemTouchAdapter.new()
 	for i in 12:
 		_adapter.items.append("Item %d" % i)
-	recycler_view.set_item_size(40)
+	recycler_view.set_item_extent(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
 	# 拖拽让位 / 删除淡出与 ItemAnimator 天然配合。

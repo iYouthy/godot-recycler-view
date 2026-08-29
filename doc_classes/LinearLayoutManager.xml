@@ -2,7 +2,7 @@
 <class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="LinearLayoutManager" inherits="LayoutManager" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
 	<brief_description>Lays items out in a single vertical column or horizontal row.</brief_description>
 	<description>LinearLayoutManager places items one after another along the scroll axis, supporting
-variable item heights. It is the default layout for a plain list.
+variable item extents. It is the default layout for a plain list.
 
 [b]Horizontal list[/b]:
 [codeblock]

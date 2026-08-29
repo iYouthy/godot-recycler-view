@@ -46,7 +46,7 @@ func _make_setup() -> Dictionary:
 	rv.set_size(Vector2(200, 600))
 	var adapter := PlainAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(60)
+	rv.set_item_extent(60)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -263,7 +263,7 @@ func test_horizontal_drag_flings_along_x() -> void:
 	rv.set_size(Vector2(640, 360))
 	var adapter := PlainAdapter.new()
 	adapter.count = 100
-	rv.set_item_size(80)
+	rv.set_item_extent(80)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)

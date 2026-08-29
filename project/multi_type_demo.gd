@@ -12,7 +12,7 @@ func _ready() -> void:
 	_adapter = MultiTypeAdapter.new()
 	_adapter.count = 1000
 	var layout := LinearLayoutManager.new()
-	recycler_view.set_item_size(40)
+	recycler_view.set_item_extent(40)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(layout)
 	_update_counter()

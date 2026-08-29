@@ -74,11 +74,11 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear_on_scroll_listeners"), &RecyclerView::clear_on_scroll_listeners);
 	ClassDB::bind_method(D_METHOD("set_vertical_wheel_scrolls_horizontal", "enabled"), &RecyclerView::set_vertical_wheel_scrolls_horizontal);
 	ClassDB::bind_method(D_METHOD("get_vertical_wheel_scrolls_horizontal"), &RecyclerView::get_vertical_wheel_scrolls_horizontal);
-	ClassDB::bind_method(D_METHOD("set_item_size", "size"), &RecyclerView::set_item_size);
-	ClassDB::bind_method(D_METHOD("get_item_size"), &RecyclerView::get_item_size);
+	ClassDB::bind_method(D_METHOD("set_item_extent", "size"), &RecyclerView::set_item_extent);
+	ClassDB::bind_method(D_METHOD("get_default_item_extent"), &RecyclerView::get_default_item_extent);
 	ClassDB::bind_method(D_METHOD("set_prefetch_enabled", "enabled"), &RecyclerView::set_prefetch_enabled);
 	ClassDB::bind_method(D_METHOD("get_prefetch_enabled"), &RecyclerView::get_prefetch_enabled);
-	ClassDB::bind_method(D_METHOD("get_item_height", "position"), &RecyclerView::get_item_height);
+	ClassDB::bind_method(D_METHOD("get_item_extent", "position"), &RecyclerView::get_item_extent);
 	ClassDB::bind_method(D_METHOD("layout_children"), &RecyclerView::layout_children);
 	ClassDB::bind_method(D_METHOD("request_layout"), &RecyclerView::request_layout);
 	ClassDB::bind_method(D_METHOD("free_items"), &RecyclerView::free_items);
@@ -119,7 +119,7 @@ void RecyclerView::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "adapter", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_adapter", "get_adapter");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "layout", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_layout", "get_layout");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_size"), "set_item_size", "get_item_size");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_extent"), "set_item_extent", "get_default_item_extent");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical_wheel_scrolls_horizontal"), "set_vertical_wheel_scrolls_horizontal", "get_vertical_wheel_scrolls_horizontal");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_bar_auto_hide"), "set_scroll_bar_auto_hide", "get_scroll_bar_auto_hide");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_bar_hide_delay"), "set_scroll_bar_hide_delay", "get_scroll_bar_hide_delay");
@@ -1085,8 +1085,8 @@ void RecyclerView::mark_data_changed() {
 	}
 }
 
-void RecyclerView::set_item_size(int p_size) {
-	m_item_size = p_size;
+void RecyclerView::set_item_extent(int p_size) {
+	m_item_extent = p_size;
 	mark_data_changed();
 }
 
@@ -1204,14 +1204,14 @@ void RecyclerView::_draw() {
 	}
 }
 
-int RecyclerView::get_item_height(int p_position) const {
+int RecyclerView::get_item_extent(int p_position) const {
 	if (m_adapter.is_valid()) {
-		const int height = m_adapter->get_item_height(p_position);
-		if (height > 0) {
-			return height;
+		const int extent = m_adapter->get_item_extent(p_position);
+		if (extent > 0) {
+			return extent;
 		}
 	}
-	return m_item_size;
+	return m_item_extent;
 }
 
 Ref<ViewHolder> RecyclerView::get_child_holder_at(int p_index) const {

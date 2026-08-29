@@ -16,7 +16,7 @@ layout_mode = 2
 text = "items: 0"
 
 [node name="RecyclerView" type="RecyclerView" parent="." unique_id=234681769]
-item_size = 40
+item_extent = 40
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

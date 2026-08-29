@@ -48,7 +48,7 @@ text = "每个 item 有两个子控件（头像 + 名字）。改其中一个字
 autowrap_mode = 2
 
 [node name="RecyclerView" type="RecyclerView" parent="." unique_id=62878721]
-item_size = 40
+item_extent = 40
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

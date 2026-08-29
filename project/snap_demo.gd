@@ -11,7 +11,7 @@ func _ready() -> void:
 	var chips := SnapAdapter.new()
 	for i in 100:
 		chips.items.append("chip %d" % i)
-	chip_rv.set_item_size(300)
+	chip_rv.set_item_extent(300)
 	chip_rv.set_adapter(chips)
 	var chip_layout := LinearLayoutManager.new()
 	chip_layout.set_orientation(LinearLayoutManager.HORIZONTAL)
@@ -23,7 +23,7 @@ func _ready() -> void:
 	var cards := SnapAdapter.new()
 	for i in 100:
 		cards.items.append("card %d" % i)
-	card_rv.set_item_size(300)
+	card_rv.set_item_extent(300)
 	card_rv.set_adapter(cards)
 	var card_layout := LinearLayoutManager.new()
 	card_layout.set_orientation(LinearLayoutManager.HORIZONTAL)

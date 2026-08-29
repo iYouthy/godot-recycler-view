@@ -12,7 +12,7 @@ class BarAdapter extends Adapter:
 	func _get_item_count() -> int:
 		return count
 
-	func _get_item_height(_p: int) -> int:
+	func _get_item_extent(_p: int) -> int:
 		return 40
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
@@ -39,7 +39,7 @@ func _make_rv(with_bar: bool) -> Dictionary:
 	rv.set_size(Vector2(360, 600))
 	var adapter := BarAdapter.new()
 	adapter.count = 10000
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	if with_bar:
@@ -58,7 +58,7 @@ func _make_h_rv(with_bar: bool) -> Dictionary:
 	rv.set_size(Vector2(600, 360))
 	var adapter := BarAdapter.new()
 	adapter.count = 10000
-	rv.set_item_size(40)
+	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)

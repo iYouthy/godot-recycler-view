@@ -80,7 +80,7 @@ void GridLayoutManager::build_layout(RecyclerView *p_recycler_view, int p_item_c
 		m_row_of_position.write[pos] = row;
 		m_column_of_position.write[pos] = col_used;
 		m_span_of_position.write[pos] = span;
-		row_height = MAX(row_height, p_recycler_view->get_item_height(pos));
+		row_height = MAX(row_height, p_recycler_view->get_item_extent(pos));
 		col_used += span;
 	}
 	m_row_offset.push_back(total_offset);
