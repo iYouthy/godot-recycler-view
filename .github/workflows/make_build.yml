@@ -82,23 +82,46 @@ jobs:
         run: |
           Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
 
-      # Upload the build
+      # Upload the build for this platform (binaries only; the .gdextension descriptor is added by the merge job)
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: godot-cpp-template-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
+          name: godot-recycler-view-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           path: |
-            ${{ github.workspace }}/bin/**
+            ${{ github.workspace }}/project/bin/${{ matrix.target.platform }}/**
 
-  # Merges all the build artifacts together into a single godot-cpp-template artifact.
+  # Merges all the build artifacts together into a single installable package and adds
+  # the .gdextension descriptor (which references each platform binary in a sibling folder).
   # If you comment out this step, all the builds will be uploaded individually.
   merge:
     runs-on: ubuntu-22.04
     needs: build
     steps:
-      - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: godot-cpp-template
-          pattern: godot-cpp-template-*
-          delete-merged: true
+          path: ./artifacts
+          pattern: godot-recycler-view-*
+
+      - name: Assemble package
+        shell: bash
+        run: |
+          mkdir -p package
+          for d in artifacts/godot-recycler-view-*; do
+            [ -d "$d" ] || continue
+            base="${d##*/}"
+            platform="${base#godot-recycler-view-}"
+            platform="${platform%%-*}"
+            mkdir -p "package/$platform"
+            cp "$d"/* "package/$platform/"
+          done
+          cp project/bin/godot_recycler_view.gdextension package/
+
+      - name: Upload merged package
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recycler-view
+          path: package/**

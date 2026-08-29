@@ -1,5 +1,6 @@
 # For syntax, see https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 # This workflow is automatically triggered for every push and pull request, to verify that everything still builds.
+# Each platform build is uploaded as an artifact, and a merged package (all platforms + the .gdextension descriptor) is produced.
 
 name: Continuous Integration
 on:
@@ -86,3 +87,45 @@ jobs:
         with:
           scons-cache: ${{ github.workspace }}/.scons-cache/
           cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      # Upload the built library for this platform
+      - name: Upload GDExtension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recycler-view-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
+          path: ${{ github.workspace }}/project/bin/${{ matrix.target.platform }}/**
+
+  # Merges every per-platform artifact into a single installable package and adds
+  # the .gdextension descriptor (which references each platform binary in a sibling folder).
+  merge:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          pattern: godot-recycler-view-*
+
+      - name: Assemble package
+        shell: bash
+        run: |
+          mkdir -p package
+          for d in artifacts/godot-recycler-view-*; do
+            [ -d "$d" ] || continue
+            base="${d##*/}"
+            platform="${base#godot-recycler-view-}"
+            platform="${platform%%-*}"
+            mkdir -p "package/$platform"
+            cp "$d"/* "package/$platform/"
+          done
+          cp project/bin/godot_recycler_view.gdextension package/
+
+      - name: Upload merged package
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recycler-view
+          path: package/**
