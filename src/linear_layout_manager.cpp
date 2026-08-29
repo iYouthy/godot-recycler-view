@@ -146,6 +146,35 @@ void LinearLayoutManager::on_layout_children(RecyclerView *p_recycler_view, Stat
 	}
 }
 
+void LinearLayoutManager::collect_adjacent_prefetch_positions(int p_dy, RecyclerView *p_recycler_view, Array &r_positions) const {
+	const int item_count = get_item_count();
+	if (item_count == 0) {
+		return;
+	}
+	build_layout(p_recycler_view, item_count);
+	const int viewport_size = m_orientation == VERTICAL
+			? (int)p_recycler_view->get_viewport_size().y
+			: (int)p_recycler_view->get_viewport_size().x;
+	const int scroll_offset = m_orientation == VERTICAL
+			? p_recycler_view->get_scroll_offset()
+			: p_recycler_view->get_scroll_offset_horizontal();
+	const int first_visible = first_visible_position(scroll_offset, item_count);
+	const int last_visible = last_visible_position(scroll_offset + viewport_size, item_count);
+
+	// A fixed runway of positions just past the viewport in the scroll direction.
+	static constexpr int PREFETCH_COUNT = 4;
+	if (p_dy > 0) {
+		const int end = MIN(last_visible + PREFETCH_COUNT, item_count);
+		for (int i = last_visible; i < end; i++) {
+			r_positions.push_back(i);
+		}
+	} else if (p_dy < 0) {
+		for (int i = first_visible - 1; i >= MAX(first_visible - PREFETCH_COUNT, 0); i--) {
+			r_positions.push_back(i);
+		}
+	}
+}
+
 bool LinearLayoutManager::has_child_at(RecyclerView *p_recycler_view, int p_position) const {
 	for (int i = 0; i < p_recycler_view->get_child_holder_count(); i++) {
 		if (p_recycler_view->get_child_holder_at(i)->get_position() == p_position) {

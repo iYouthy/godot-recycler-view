@@ -115,6 +115,11 @@ public:
 	// adapter's variable height, or the default item size when not provided.
 	int get_item_height(int p_position) const;
 
+	// Prefetch toggle (default on): after a layout, holders for the positions
+	// just past the viewport are pre-created into the recycled pool.
+	void set_prefetch_enabled(bool p_enabled);
+	bool get_prefetch_enabled() const { return m_prefetch_enabled; }
+
 	// Drag plumbing used by nested RecyclerViews: when a child hands a
 	// perpendicular drag off to an ancestor RV (its axis isn't the dominant
 	// one), the child becomes a conduit that forwards motion/release here.
@@ -177,6 +182,9 @@ private:
 	void capture_pre_positions();
 	void dispatch_animations();
 	bool in_pre_positions(const Ref<ViewHolder> &p_holder) const;
+	// Prefetch: after a layout, pre-creates holders for the positions just past
+	// the viewport in the current scroll direction into the recycled pool.
+	void prefetch_adjacent();
 	bool try_start_fling(float p_velocity);
 
 	// Nested scroll: cascade forwarding and ancestor lookup.
@@ -208,12 +216,20 @@ private:
 	Vector<Ref<ItemDecoration>> m_decorations;
 	Ref<ItemAnimator> m_item_animator;
 	bool m_layout_deferred = false;
+	// Set when a layout request arrives while a layout is already running (e.g.
+	// a RESIZED notification for the size being finalized). The running layout
+	// re-runs once afterwards so a size/state change is never dropped.
+	bool m_layout_requested_again = false;
 
 	// Tracked child ViewHolders (in tree order), for recycling on scroll.
 	Vector<Ref<ViewHolder>> m_children;
 
 	int m_scroll_offset = 0;
 	int m_scroll_offset_h = 0;
+	// Direction of the most recent scroll (-1 up/left, 0 none, +1 down/right).
+	// Drives the prefetch so it pre-creates the runway on the correct side.
+	int m_last_scroll_direction = 0;
+	bool m_prefetch_enabled = true;
 	// Item size along the scroll axis, used by the LayoutManager. In a full port
 	// this is derived from the adapter/measurement; fixed for the first slice.
 	int m_item_size = 64;

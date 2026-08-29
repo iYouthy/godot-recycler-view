@@ -15,6 +15,7 @@ void Recycler::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("recycle_view", "holder", "position"), &Recycler::recycle_view);
 	ClassDB::bind_method(D_METHOD("scrap_view", "holder"), &Recycler::scrap_view);
 	ClassDB::bind_method(D_METHOD("flush_scrap_to_pool"), &Recycler::flush_scrap_to_pool);
+	ClassDB::bind_method(D_METHOD("prefetch_view", "position"), &Recycler::prefetch_view);
 	ClassDB::bind_method(D_METHOD("get_recycled_view_count", "view_type"), &Recycler::get_recycled_view_count);
 	ClassDB::bind_method(D_METHOD("get_cached_view_count"), &Recycler::get_cached_view_count);
 	ClassDB::bind_method(D_METHOD("get_changed_scrap_count"), &Recycler::get_changed_scrap_count);
@@ -128,6 +129,23 @@ void Recycler::flush_scrap_to_pool() {
 		}
 	}
 	m_changed_scrap.clear();
+}
+
+void Recycler::prefetch_view(int p_position) {
+	ERR_FAIL_NULL(m_adapter);
+	if (p_position < 0 || p_position >= m_adapter->get_item_count()) {
+		return;
+	}
+	const int type = m_adapter->get_item_view_type(p_position);
+	if (m_pool.get_recycled_view_count(type) >= m_pool.get_max_recycled_views(type)) {
+		return;  // Pool full for this view type; prefetching more would evict.
+	}
+	Ref<ViewHolder> holder = m_adapter->create_view_holder(nullptr, type);
+	if (holder.is_valid()) {
+		holder->set_item_view_type(type);
+		m_pool_holders.push_back(holder);
+		m_pool.put_recycled_view(holder.ptr(), type);
+	}
 }
 
 void Recycler::offset_position_records_for_ops(const Vector<UpdateOp> &p_ops) {

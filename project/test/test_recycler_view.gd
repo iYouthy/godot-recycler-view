@@ -29,6 +29,9 @@ func _make_setup() -> Dictionary:
 	var adapter := ItemAdapter.new()
 	var layout := LinearLayoutManager.new()
 	rv.set_item_size(60)
+	# These tests assert creation stays bounded (virtualization / incremental
+	# updates); prefetch deliberately pre-creates extra holders, so it is off.
+	rv.set_prefetch_enabled(false)
 	rv.set_adapter(adapter)
 	rv.set_layout(layout)
 	return { "rv": rv, "adapter": adapter }
@@ -292,6 +295,7 @@ func _make_value_setup() -> Dictionary:
 	for i in 100:
 		adapter.items.append(i)
 	rv.set_item_size(60)
+	rv.set_prefetch_enabled(false)  # bounded-creation asserts, see _make_setup
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()
@@ -436,6 +440,7 @@ func test_multiple_view_types_reuse_and_match() -> void:
 	var adapter := MultiTypeAdapter.new()
 	adapter.count = 1000
 	rv.set_item_size(60)
+	rv.set_prefetch_enabled(false)  # bounded-creation asserts
 	rv.set_adapter(adapter)
 	rv.set_layout(LinearLayoutManager.new())
 	rv.request_layout()

@@ -2,6 +2,7 @@
 
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/rect2.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 
@@ -40,6 +41,12 @@ public:
 	// The un-inflated rect of the item at the position (before decoration insets).
 	// Used by ItemDecorations to draw dividers/spacing.
 	virtual Rect2 get_item_rect(RecyclerView *p_recycler_view, int p_position) const { return Rect2(); }
+
+	// Collects positions adjacent to the viewport in the given scroll direction
+	// (p_dy > 0 = scrolling down/right). The RecyclerView pre-creates these into
+	// the recycled pool so scrolling there does not instantiate new views.
+	// Mirrors LayoutManager.collectAdjacentPrefetchPositions.
+	virtual void collect_adjacent_prefetch_positions(int p_dy, RecyclerView *p_recycler_view, Array &r_positions) const {}
 
 	RecyclerView *get_recycler_view() const { return m_recycler_view; }
 	void set_recycler_view(RecyclerView *p_recycler_view);

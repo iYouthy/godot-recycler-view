@@ -75,6 +75,8 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_vertical_wheel_scrolls_horizontal"), &RecyclerView::get_vertical_wheel_scrolls_horizontal);
 	ClassDB::bind_method(D_METHOD("set_item_size", "size"), &RecyclerView::set_item_size);
 	ClassDB::bind_method(D_METHOD("get_item_size"), &RecyclerView::get_item_size);
+	ClassDB::bind_method(D_METHOD("set_prefetch_enabled", "enabled"), &RecyclerView::set_prefetch_enabled);
+	ClassDB::bind_method(D_METHOD("get_prefetch_enabled"), &RecyclerView::get_prefetch_enabled);
 	ClassDB::bind_method(D_METHOD("get_item_height", "position"), &RecyclerView::get_item_height);
 	ClassDB::bind_method(D_METHOD("layout_children"), &RecyclerView::layout_children);
 	ClassDB::bind_method(D_METHOD("request_layout"), &RecyclerView::request_layout);
@@ -955,12 +957,20 @@ int RecyclerView::get_max_scroll_offset_horizontal() {
 }
 
 void RecyclerView::set_scroll_offset(int p_offset) {
+	const int before = m_scroll_offset;
 	m_scroll_offset = CLAMP(p_offset, 0, get_max_scroll_offset());
+	if (m_scroll_offset != before) {
+		m_last_scroll_direction = m_scroll_offset > before ? 1 : -1;
+	}
 	layout_children();
 }
 
 void RecyclerView::set_scroll_offset_horizontal(int p_offset) {
+	const int before = m_scroll_offset_h;
 	m_scroll_offset_h = CLAMP(p_offset, 0, get_max_scroll_offset_horizontal());
+	if (m_scroll_offset_h != before) {
+		m_last_scroll_direction = m_scroll_offset_h > before ? 1 : -1;
+	}
 	layout_children();
 }
 
@@ -1046,6 +1056,10 @@ void RecyclerView::process_pending_updates() {
 
 void RecyclerView::layout_children() {
 	if (m_layout_in_progress) {
+		// A layout request (typically a RESIZED notification for the size being
+		// finalized) arrived while a layout is running; re-run once afterwards
+		// so the size/state change is not silently dropped.
+		m_layout_requested_again = true;
 		return;
 	}
 	m_layout_deferred = false;
@@ -1053,26 +1067,51 @@ void RecyclerView::layout_children() {
 		return;
 	}
 	m_layout_in_progress = true;
-	// Two-phase layout for item animations: capture pre-update positions, then
-	// dispatch move/add/remove/change after the post layout. Only incremental
-	// notify_* calls animate; plain scrolls/resizes have no pending updates.
-	const bool has_updates = m_adapter_helper->has_pending_updates();
-	if (has_updates && m_item_animator.is_valid()) {
-		capture_pre_positions();
-	}
-	process_pending_updates();
-	m_state->set_item_count(m_adapter->get_item_count());
-	m_layout->set_recycler_view(this);
-	m_layout->on_layout_children(this, m_state.ptr());
-	if (has_updates && m_item_animator.is_valid()) {
-		dispatch_animations();
-	}
-	m_recycler->flush_scrap_to_pool();
-	for (int i = 0; i < m_children.size(); i++) {
-		m_children[i]->clear_old_position();
-	}
-	queue_redraw();
+	do {
+		m_layout_requested_again = false;
+		// Two-phase layout for item animations: capture pre-update positions,
+		// then dispatch move/add/remove/change after the post layout. Only
+		// incremental notify_* calls animate; plain scrolls/resizes do not.
+		const bool has_updates = m_adapter_helper->has_pending_updates();
+		if (has_updates && m_item_animator.is_valid()) {
+			capture_pre_positions();
+		}
+		process_pending_updates();
+		m_state->set_item_count(m_adapter->get_item_count());
+		m_layout->set_recycler_view(this);
+		m_layout->on_layout_children(this, m_state.ptr());
+		if (has_updates && m_item_animator.is_valid()) {
+			dispatch_animations();
+		}
+		m_recycler->flush_scrap_to_pool();
+		for (int i = 0; i < m_children.size(); i++) {
+			m_children[i]->clear_old_position();
+		}
+		queue_redraw();
+	} while (m_layout_requested_again);
 	m_layout_in_progress = false;
+	prefetch_adjacent();
+}
+
+void RecyclerView::set_prefetch_enabled(bool p_enabled) {
+	m_prefetch_enabled = p_enabled;
+}
+
+void RecyclerView::prefetch_adjacent() {
+	if (m_layout.is_null() || m_adapter.is_null() || m_recycler.is_null()) {
+		return;
+	}
+	if (!m_prefetch_enabled) {
+		return;
+	}
+	if (m_last_scroll_direction == 0) {
+		return;
+	}
+	Array positions;
+	m_layout->collect_adjacent_prefetch_positions(m_last_scroll_direction, this, positions);
+	for (int i = 0; i < positions.size(); i++) {
+		m_recycler->prefetch_view((int)positions[i]);
+	}
 }
 
 void RecyclerView::request_layout() {

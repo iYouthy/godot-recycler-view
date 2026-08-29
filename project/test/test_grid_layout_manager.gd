@@ -121,6 +121,9 @@ func test_grid_scroll_virtualizes_without_overlap() -> void:
 	var adapter := CellAdapter.new()
 	adapter.count = 100
 	rv.set_item_size(60)
+	# This test asserts creation stays bounded (virtualization); prefetch
+	# deliberately pre-creates extra holders, so it is disabled here.
+	rv.set_prefetch_enabled(false)
 	rv.set_adapter(adapter)
 	var layout := GridLayoutManager.new()
 	layout.set_span_count(3)

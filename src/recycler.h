@@ -38,6 +38,12 @@ public:
 	// Holds a holder removed by an update for the rest of the layout cycle.
 	void scrap_view(const Ref<ViewHolder> &p_holder);
 
+	// Pre-creates an unbound holder for the given position into the recycled
+	// pool (skipped when the pool is full for the view type). Scrolling into the
+	// position later reuses it instead of instantiating a new view. Mirrors the
+	// GapWorker prefetch.
+	void prefetch_view(int p_position);
+
 	// Releases every scrapped holder to the cache/pool (or frees its Control if
 	// the pool is full). Called at the end of a layout cycle.
 	void flush_scrap_to_pool();
