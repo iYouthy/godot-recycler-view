@@ -24,3 +24,4 @@ class MyViewHolder extends ViewHolder:
 func _init() -> void:
 	set_adapter(MyAdapter.new())
 	set_layout(LinearLayoutManager.new())
+	set_scroll_bar(DefaultScrollBar.new())

@@ -8,6 +8,7 @@
 #include "item_touch_helper.h"
 #include "layout_manager.h"
 #include "recycler.h"
+#include "scroll_bar.h"
 #include "scroll_listener.h"
 #include "snap_helper.h"
 #include "state.h"
@@ -108,6 +109,21 @@ public:
 	void set_item_animator(const Ref<ItemAnimator> &p_animator);
 	Ref<ItemAnimator> get_item_animator() const { return m_item_animator; }
 
+	// Scroll bar (protocol: RecyclerViewScrollBar, default DefaultScrollBar). Attached as a
+	// child Control pinned to the trailing edge; the RV notifies it on every
+	// scroll/layout. The bar is owned by the RV's node tree (add_child), so it
+	// must NOT be freed manually. Pass null to remove the bar.
+	void set_scroll_bar(RecyclerViewScrollBar *p_bar);
+	RecyclerViewScrollBar *get_scroll_bar() const { return m_scroll_bar; }
+	// Whether the attached scroll bar fades out while the RV sits idle
+	// (forwarded to the bar; default true, adjustable in the inspector).
+	void set_scroll_bar_auto_hide(bool p_enabled);
+	bool get_scroll_bar_auto_hide() const { return m_scroll_bar_auto_hide; }
+	// Seconds the bar stays visible after the last activity before auto-hiding
+	// (forwarded to the bar; default 0.5, Android's default fade delay).
+	void set_scroll_bar_hide_delay(float p_delay);
+	float get_scroll_bar_hide_delay() const { return m_scroll_bar_hide_delay; }
+
 	// Item touch helper (long-press drag-reorder / swipe-dismiss). Set it via
 	// ItemTouchHelper::attach_to_recycler_view().
 	void set_item_touch_helper(const Ref<ItemTouchHelper> &p_helper);
@@ -187,6 +203,10 @@ private:
 	void attach_to_adapter();
 	void process_pending_updates();
 	void mark_data_changed();
+	// Forwards a mouse event landing on the visible scroll bar to it (Godot's
+	// GUI hit-test can pick the item views over the bar). Returns true if the
+	// bar handled the event.
+	bool forward_to_scroll_bar(const Ref<InputEvent> &p_event);
 
 	// Scroll state machine internals.
 	int get_max_scroll_offset();
@@ -255,6 +275,13 @@ private:
 	Ref<ItemAnimator> m_item_animator;
 	Ref<ItemTouchHelper> m_item_touch_helper;
 	Ref<SnapHelper> m_snap_helper;
+	RecyclerViewScrollBar *m_scroll_bar = nullptr;
+	bool m_scroll_bar_auto_hide = true;
+	float m_scroll_bar_hide_delay = 0.5f;
+	// True while a drag started on the scroll bar is active: the RV keeps
+	// routing mouse events to it even when the thumb is dragged outside the
+	// bar's narrow strip.
+	bool m_scroll_bar_dragging = false;
 	bool m_layout_deferred = false;
 	// Set when a layout request arrives while a layout is already running (e.g.
 	// a RESIZED notification for the size being finalized). The running layout

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://obqp3l7g3wse"]
+
+[sub_resource type="Theme" id="Theme_n3ana"]
+
+[node name="MyScrollBar" type="DefaultScrollBar" unique_id=1499128169]
+modulate = Color(1, 1, 1, 0)
+theme = SubResource("Theme_n3ana")
+theme_type_variation = &"HScrollBar"

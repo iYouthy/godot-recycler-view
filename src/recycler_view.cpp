@@ -1,5 +1,6 @@
 #include "recycler_view.h"
 
+#include <godot_cpp/classes/input_event_mouse.hpp>
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -103,6 +104,12 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("smooth_scroll_to", "target", "duration"), &RecyclerView::smooth_scroll_to);
 	ClassDB::bind_method(D_METHOD("set_snap_helper", "helper"), &RecyclerView::set_snap_helper);
 	ClassDB::bind_method(D_METHOD("get_snap_helper"), &RecyclerView::get_snap_helper);
+	ClassDB::bind_method(D_METHOD("set_scroll_bar", "bar"), &RecyclerView::set_scroll_bar);
+	ClassDB::bind_method(D_METHOD("get_scroll_bar"), &RecyclerView::get_scroll_bar);
+	ClassDB::bind_method(D_METHOD("set_scroll_bar_auto_hide", "enabled"), &RecyclerView::set_scroll_bar_auto_hide);
+	ClassDB::bind_method(D_METHOD("get_scroll_bar_auto_hide"), &RecyclerView::get_scroll_bar_auto_hide);
+	ClassDB::bind_method(D_METHOD("set_scroll_bar_hide_delay", "delay"), &RecyclerView::set_scroll_bar_hide_delay);
+	ClassDB::bind_method(D_METHOD("get_scroll_bar_hide_delay"), &RecyclerView::get_scroll_bar_hide_delay);
 
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_IDLE", SCROLL_STATE_IDLE);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
@@ -112,6 +119,8 @@ void RecyclerView::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "layout", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_layout", "get_layout");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_size"), "set_item_size", "get_item_size");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical_wheel_scrolls_horizontal"), "set_vertical_wheel_scrolls_horizontal", "get_vertical_wheel_scrolls_horizontal");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_bar_auto_hide"), "set_scroll_bar_auto_hide", "get_scroll_bar_auto_hide");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_bar_hide_delay"), "set_scroll_bar_hide_delay", "get_scroll_bar_hide_delay");
 }
 
 RecyclerView::RecyclerView() {
@@ -155,6 +164,13 @@ void RecyclerView::_notification(int p_what) {
 }
 
 void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
+	// Route clicks/drags on the visible scroll bar to it before anything else:
+	// Godot's GUI hit-test can pick the item views over the bar (clipping and
+	// z-order are not considered the same way), so the RV — the fallback
+	// receiver — forwards events that land on the bar instead of scrolling.
+	if (forward_to_scroll_bar(p_event)) {
+		return;
+	}
 	Ref<InputEventMouseButton> mb = p_event;
 	if (mb.is_valid()) {
 		// The touch helper owns an active gesture (long-press drag / swipe):
@@ -281,6 +297,44 @@ void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
 			continue_drag(mm);
 		}
 	}
+}
+
+// Routes a mouse event that lands on the (visible) scroll bar to it, in the
+// bar's local space. Godot's GUI hit-test can pick the item views over the bar,
+// so the RV — the fallback receiver — forwards instead of scrolling. A hidden
+// bar (auto-hide faded out) sets MOUSE_FILTER_IGNORE and is skipped, letting the
+// click pass through to the RV.
+bool RecyclerView::forward_to_scroll_bar(const Ref<InputEvent> &p_event) {
+	if (m_scroll_bar == nullptr) {
+		return false;
+	}
+	// A hidden bar (auto-hide faded out) is skipped; a drag that already started
+	// keeps routing regardless of position (the thumb can leave the narrow bar).
+	if (m_scroll_bar->get_mouse_filter() == MOUSE_FILTER_IGNORE && !m_scroll_bar_dragging) {
+		return false;
+	}
+	const Ref<InputEventMouse> mouse = p_event;
+	if (mouse.is_valid()) {
+		const Rect2 bar_rect = m_scroll_bar->get_global_rect();
+		const Vector2 global = mouse->get_position() + get_global_position();
+		if (m_scroll_bar_dragging || bar_rect.has_point(global)) {
+			mouse->set_position(global - bar_rect.position);
+			m_scroll_bar->_gui_input(p_event);
+			const Ref<InputEventMouseButton> mb = p_event;
+			if (mb.is_valid() && mb->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT) {
+				m_scroll_bar_dragging = mb->is_pressed();
+			} else {
+				// A motion without the left button: the drag ended without a
+				// release reaching us, stop routing bar events.
+				const Ref<InputEventMouseMotion> mm = p_event;
+				if (mm.is_valid() && !mm->get_button_mask().has_flag(MouseButtonMask::MOUSE_BUTTON_MASK_LEFT)) {
+					m_scroll_bar_dragging = false;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 // Scrolls along the layout's scroll axis. In a horizontal layout the vertical
@@ -715,6 +769,38 @@ void RecyclerView::set_item_touch_helper(const Ref<ItemTouchHelper> &p_helper) {
 
 void RecyclerView::set_snap_helper(const Ref<SnapHelper> &p_helper) {
 	m_snap_helper = p_helper;
+}
+
+void RecyclerView::set_scroll_bar(RecyclerViewScrollBar *p_bar) {
+	if (m_scroll_bar == p_bar) {
+		return;
+	}
+	if (m_scroll_bar != nullptr) {
+		m_scroll_bar->unbind();
+		remove_child(m_scroll_bar);
+	}
+	m_scroll_bar = p_bar;
+	if (m_scroll_bar != nullptr) {
+		add_child(m_scroll_bar);
+		m_scroll_bar->bind_to(this);
+		m_scroll_bar->set_auto_hide(m_scroll_bar_auto_hide);
+		m_scroll_bar->set_hide_delay(m_scroll_bar_hide_delay);
+		m_scroll_bar->on_scroll_changed();
+	}
+}
+
+void RecyclerView::set_scroll_bar_auto_hide(bool p_enabled) {
+	m_scroll_bar_auto_hide = p_enabled;
+	if (m_scroll_bar != nullptr) {
+		m_scroll_bar->set_auto_hide(p_enabled);
+	}
+}
+
+void RecyclerView::set_scroll_bar_hide_delay(float p_delay) {
+	m_scroll_bar_hide_delay = p_delay;
+	if (m_scroll_bar != nullptr) {
+		m_scroll_bar->set_hide_delay(p_delay);
+	}
 }
 
 void RecyclerView::smooth_scroll_to(int p_target, double p_duration) {
@@ -1264,6 +1350,11 @@ void RecyclerView::layout_children() {
 		// A swap relayout moved the dragged holder to its new slot; re-pin it to
 		// the finger so it never tears visually (see ItemTouchHelper).
 		m_item_touch_helper->on_after_layout(this);
+	}
+	if (m_scroll_bar != nullptr) {
+		// Refresh the thumb after every scroll/layout (the bar reads the current
+		// offset/content through the RecyclerViewScrollBar data contract).
+		m_scroll_bar->on_scroll_changed();
 	}
 }
 
