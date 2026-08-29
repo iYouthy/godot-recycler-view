@@ -410,13 +410,6 @@ void RecyclerView::set_scroll_state(int p_state) {
 }
 
 void RecyclerView::dispatch_scrolled(int p_dx, int p_dy) {
-	// A reversed layout moves content the opposite way for the same scroll delta,
-	// so listeners receive the content-space direction (dy>0 = content moving
-	// down), matching Android's onScrolled regardless of reverse_layout.
-	if (m_layout.is_valid() && m_layout->is_reverse_layout()) {
-		p_dx = -p_dx;
-		p_dy = -p_dy;
-	}
 	for (int i = 0; i < m_scroll_listeners.size(); i++) {
 		m_scroll_listeners[i]->on_scrolled(p_dx, p_dy);
 	}
@@ -479,9 +472,14 @@ bool RecyclerView::try_start_fling(float p_velocity) {
 // child reaches its end before the parent takes over, instead of both flying
 // together and recycling the child's item mid-flight.
 void RecyclerView::start_nested_fling(float p_velocity) {
+	const bool rev = m_layout.is_valid() && m_layout->is_reverse_layout();
+	// FlingScroller treats positive velocity as "offset increases". Reverse layout
+	// shows older items as the offset decreases (content moves up), so flip the
+	// velocity: an upward flick (negative) must drive the offset down.
+	const float fling_velocity = rev ? -p_velocity : p_velocity;
 	if (m_layout.is_valid() && m_layout->can_scroll_horizontally()) {
 		const int max_offset = get_max_scroll_offset_horizontal();
-		m_fling_h.fling(m_scroll_offset_h, -p_velocity, 0, max_offset);
+		m_fling_h.fling(m_scroll_offset_h, -fling_velocity, 0, max_offset);
 		set_scroll_state(SCROLL_STATE_SETTLING);
 		if (m_fling_h.was_clamped()
 				&& (m_scroll_offset_h == 0 || m_scroll_offset_h == max_offset)) {
@@ -492,7 +490,7 @@ void RecyclerView::start_nested_fling(float p_velocity) {
 		}
 	} else if (m_layout.is_valid() && m_layout->can_scroll_vertically()) {
 		const int max_offset = get_max_scroll_offset();
-		m_fling_v.fling(m_scroll_offset, -p_velocity, 0, max_offset);
+		m_fling_v.fling(m_scroll_offset, -fling_velocity, 0, max_offset);
 		set_scroll_state(SCROLL_STATE_SETTLING);
 		if (m_fling_v.was_clamped()
 				&& (m_scroll_offset == 0 || m_scroll_offset == max_offset)) {
@@ -556,6 +554,7 @@ void RecyclerView::begin_drag(const Ref<InputEventMouseMotion> &p_mm) {
 }
 
 void RecyclerView::continue_drag(const Ref<InputEventMouseMotion> &p_mm) {
+	const bool rev = m_layout.is_valid() && m_layout->is_reverse_layout();
 	if (m_layout.is_valid() && m_layout->can_scroll_horizontally()) {
 		const float x = p_mm->get_position().x;
 		m_velocity_tracker_h.add_sample(x, m_elapsed_ms);
@@ -565,7 +564,9 @@ void RecyclerView::continue_drag(const Ref<InputEventMouseMotion> &p_mm) {
 		}
 		if (m_drag_scrolled) {
 			const int before = m_scroll_offset_h;
-			const int target = m_drag_start_scroll_h - dx;
+			// Reverse layout: scrolling the content down shows older items, so the
+			// drag delta must flip to keep "content follows the finger".
+			const int target = rev ? m_drag_start_scroll_h + dx : m_drag_start_scroll_h - dx;
 			set_scroll_offset_horizontal(target);
 			const int actual = m_scroll_offset_h - before;
 			const int leftover = (target - before) - actual;
@@ -585,7 +586,7 @@ void RecyclerView::continue_drag(const Ref<InputEventMouseMotion> &p_mm) {
 		}
 		if (m_drag_scrolled) {
 			const int before = m_scroll_offset;
-			const int target = m_drag_start_scroll - dy;
+			const int target = rev ? m_drag_start_scroll + dy : m_drag_start_scroll - dy;
 			set_scroll_offset(target);
 			const int actual = m_scroll_offset - before;
 			const int leftover = (target - before) - actual;

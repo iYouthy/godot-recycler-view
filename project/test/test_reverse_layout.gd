@@ -26,6 +26,11 @@ class BarAdapter extends Adapter:
 
 
 func _make_rv(count: int) -> Dictionary:
+	# Headless starts with a 64x64 window; pin the design size so synthetic
+	# push_input events map 1:1 onto the RecyclerView (see test_scroll_fling).
+	get_window().size = Vector2i(1920, 1080)
+	get_window().content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
 	var rv := RecyclerView.new()
 	rv.set_size(Vector2(360, 600))
 	var adapter := BarAdapter.new()
@@ -196,4 +201,57 @@ func test_scroll_bar_reverse_thumb_at_bottom() -> void:
 	rv.set_scroll_offset(3400)
 	await get_tree().process_frame
 	assert_that(bar.get_thumb_rect().position.y).is_less(thumb.position.y)
+	_free(rv)
+
+
+func _drag_up(rv: RecyclerView) -> void:
+	# Finger drags upward 200px inside the RV (content should follow the finger).
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = Vector2(180, 300)
+	get_tree().root.push_input(press)
+	await get_tree().process_frame
+	var motion := InputEventMouseMotion.new()
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	motion.position = Vector2(180, 100)
+	get_tree().root.push_input(motion)
+	await get_tree().process_frame
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = Vector2(180, 100)
+	get_tree().root.push_input(release)
+	await get_tree().process_frame
+
+
+func test_reverse_drag_up_moves_content_up() -> void:
+	var s := await _make_rv(100)
+	var rv: RecyclerView = s.rv
+	var layout := LinearLayoutManager.new()
+	layout.set_reverse_layout(true)
+	rv.set_layout(layout)
+	rv.request_layout()
+	await get_tree().process_frame
+	rv.set_scroll_offset(2000)
+	await get_tree().process_frame
+	var before := rv.get_scroll_offset()
+	await _drag_up(rv)
+	# reverse: content up = older items = offset decreases.
+	assert_that(rv.get_scroll_offset()).is_less(before)
+	_free(rv)
+
+
+func test_normal_drag_up_moves_content_up() -> void:
+	var s := await _make_rv(100)
+	var rv: RecyclerView = s.rv
+	rv.set_layout(LinearLayoutManager.new())
+	rv.request_layout()
+	await get_tree().process_frame
+	rv.set_scroll_offset(2000)
+	await get_tree().process_frame
+	var before := rv.get_scroll_offset()
+	await _drag_up(rv)
+	# normal: content up = deeper items = offset increases.
+	assert_that(rv.get_scroll_offset()).is_greater(before)
 	_free(rv)
