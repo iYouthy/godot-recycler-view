@@ -1,6 +1,8 @@
-# Tests for the Recycler prefetch: after a scroll, holders for the runway just
-# past the viewport are pre-created into the recycled pool (default on), so
-# scrolling there reuses them instead of instantiating fresh views.
+# Tests for the Recycler prefetch and the reuse guarantee: scrolling through a
+# long list must not fabricate a fresh holder on every layout pass. Scrolled-out
+# holders flow back through the cache/pool and incoming items reuse them;
+# prefetch only pre-creates into the pool when every cache is empty (it does not
+# top the pool back up on each pass, which would make created grow forever).
 
 extends GdUnitTestSuite
 
@@ -50,23 +52,32 @@ func test_no_prefetch_without_scroll() -> void:
 	rv.free()
 
 
-func test_scroll_prefetches_next_items() -> void:
+func test_scrolling_reuses_holders_created_stays_bounded() -> void:
+	# Regression: scrolling through a long list must reuse scrolled-out holders
+	# instead of creating a fresh view every pass. After the first window the
+	# created counter stays constant no matter how far we scroll.
 	var s := await _make_setup()
 	var rv: RecyclerView = s.rv
-	rv.scroll_vertically(100)
-	# The runway beyond the viewport (downwards) was pre-created into the pool.
-	assert_that(rv.get_recycler().get_recycled_view_count(0)).is_greater(0)
+	var adapter: PrefetchAdapter = s.adapter
+	rv.scroll_vertically(400)  # jump far past the first window
+	var created_after_jump := adapter.created
+	for i in 40:
+		rv.scroll_vertically(40)  # one item per pass, down to the end
+	assert_that(adapter.created).is_equal(created_after_jump)
 	rv.free_items()
 	rv.free()
 
 
-func test_scroll_up_prefetches_above() -> void:
+func test_scroll_up_also_reuses_not_creates() -> void:
 	var s := await _make_setup()
 	var rv: RecyclerView = s.rv
-	rv.scroll_vertically(500)
-	rv.scroll_vertically(-200)  # now scrolling up
-	# The runway above the viewport was prefetched.
-	assert_that(rv.get_recycler().get_recycled_view_count(0)).is_greater(0)
+	var adapter: PrefetchAdapter = s.adapter
+	rv.scroll_vertically(400)
+	rv.scroll_vertically(-200)
+	var created_after := adapter.created
+	for i in 40:
+		rv.scroll_vertically(-40)  # scroll back up, reusing all the way
+	assert_that(adapter.created).is_equal(created_after)
 	rv.free_items()
 	rv.free()
 

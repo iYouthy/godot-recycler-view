@@ -125,6 +125,12 @@ public:
 	// The animator re-queries a holder's layout target here each frame so a
 	// move slides to the live layout position (it follows scrolls).
 	Vector2 get_layout_position(const Ref<ViewHolder> &p_holder);
+	// Called by the animator when a holder's last animation finishes: if the
+	// holder's layout slot is fully outside the viewport it is recycled right
+	// away. Without this, an item that scrolled out while animating would only
+	// be reclaimed on the next layout pass — during rapid scrolling every
+	// animation period then fabricates a fresh view into an empty pool.
+	void recycle_if_out_of_view(const Ref<ViewHolder> &p_holder);
 	// Called by the animator when a removed holder finished fading out.
 	void recycle_removed(const Ref<ViewHolder> &p_holder);
 
@@ -210,6 +216,10 @@ private:
 	void capture_pre_positions();
 	void dispatch_animations();
 	bool in_pre_positions(const Ref<ViewHolder> &p_holder) const;
+	// True when the holder's layout rect lies entirely outside the viewport. Such
+	// holders are recycled on the next pass; animating them here would only
+	// re-trigger a move on every update (they never finish) and block recycling.
+	bool is_holder_out_of_view(const Ref<ViewHolder> &p_holder) const;
 	// Prefetch: after a layout, pre-creates holders for the positions just past
 	// the viewport in the current scroll direction into the recycled pool.
 	void prefetch_adjacent();

@@ -69,6 +69,25 @@ public:
 		return nullptr;
 	}
 
+	// Pops the least recently pooled item of the type, or nullptr if none. Used
+	// when the pool is full: evicting the oldest keeps the freshest recycled
+	// views (which the scrolling item is most likely to reuse) instead of
+	// discarding the incoming one.
+	void *get_oldest_recycled_view(int p_view_type) {
+		for (int i = 0; i < m_view_types.size(); i++) {
+			if (m_view_types[i] == p_view_type) {
+				Vector<void *> &heap = m_scrap_data.write[i].scrap_heap;
+				if (heap.is_empty()) {
+					return nullptr;
+				}
+				void *view = heap[0];
+				heap.remove_at(0);
+				return view;
+			}
+		}
+		return nullptr;
+	}
+
 	// Total number of pooled items across all types.
 	int size() const {
 		int count = 0;
@@ -138,7 +157,7 @@ public:
 	}
 
 private:
-	static const int DEFAULT_MAX_SCRAP = 5;
+	static const int DEFAULT_MAX_SCRAP = 12;
 
 	int64_t get_create_running_average(int p_view_type) const {
 		return get_create_running_average_ns(p_view_type);

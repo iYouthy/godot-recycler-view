@@ -11,6 +11,8 @@ void Recycler::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_adapter"), &Recycler::get_adapter);
 	ClassDB::bind_method(D_METHOD("set_view_cache_size", "size"), &Recycler::set_view_cache_size);
 	ClassDB::bind_method(D_METHOD("get_view_cache_size"), &Recycler::get_view_cache_size);
+	ClassDB::bind_method(D_METHOD("set_view_pool_size", "view_type", "max"), &Recycler::set_view_pool_size);
+	ClassDB::bind_method(D_METHOD("get_view_pool_size", "view_type"), &Recycler::get_view_pool_size);
 	ClassDB::bind_method(D_METHOD("get_view_for_position", "position"), &Recycler::get_view_for_position);
 	ClassDB::bind_method(D_METHOD("recycle_view", "holder", "position"), &Recycler::recycle_view);
 	ClassDB::bind_method(D_METHOD("scrap_view", "holder"), &Recycler::scrap_view);
@@ -101,8 +103,25 @@ void Recycler::recycle_view(const Ref<ViewHolder> &p_holder, int p_position) {
 		Ref<ViewHolder> victim = m_cached_views[0];
 		m_cached_views.remove_at(0);
 		victim->reset_internal();
+		const int type = victim->get_item_view_type();
+		if (m_pool.get_recycled_view_count(type) >= m_pool.get_max_recycled_views(type)) {
+			// Pool full for this type: evict the oldest pooled holder so recycled
+			// views keep cycling (the freshest are the most likely to be reused by
+			// the scrolling item) instead of discarding the incoming one.
+			void *oldest = m_pool.get_oldest_recycled_view(type);
+			for (int i = 0; i < m_pool_holders.size(); i++) {
+				if (m_pool_holders[i].ptr() == oldest) {
+					Control *control = m_pool_holders[i]->get_control();
+					if (control != nullptr) {
+						memdelete(control);
+					}
+					m_pool_holders.remove_at(i);
+					break;
+				}
+			}
+		}
 		m_pool_holders.push_back(victim);
-		m_pool.put_recycled_view(victim.ptr(), victim->get_item_view_type());
+		m_pool.put_recycled_view(victim.ptr(), type);
 	}
 	m_cached_views.push_back(p_holder);
 }
@@ -139,6 +158,18 @@ void Recycler::prefetch_view(int p_position) {
 	const int type = m_adapter->get_item_view_type(p_position);
 	if (m_pool.get_recycled_view_count(type) >= m_pool.get_max_recycled_views(type)) {
 		return;  // Pool full for this view type; prefetching more would evict.
+	}
+	// A pooled holder of this type already covers the scrolling item; creating
+	// another here would fabricate a fresh view on every layout pass.
+	if (m_pool.get_recycled_view_count(type) > 0) {
+		return;
+	}
+	// Cached holders of this type flow back into the pool as the cache fills, so
+	// the scrolling items will reuse them; nothing to prefetch yet.
+	for (int i = 0; i < m_cached_views.size(); i++) {
+		if (m_cached_views[i]->get_item_view_type() == type) {
+			return;
+		}
 	}
 	Ref<ViewHolder> holder = m_adapter->create_view_holder(nullptr, type);
 	if (holder.is_valid()) {

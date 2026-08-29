@@ -22,8 +22,17 @@ public:
 	void animate_move(const Ref<ViewHolder> &p_holder, const Rect2 &p_from, const Rect2 &p_to) override;
 	void animate_change(const Ref<ViewHolder> &p_holder, const Rect2 &p_from, const Rect2 &p_to) override;
 	void animate_step(double p_delta) override;
+	void cancel_holder(const Ref<ViewHolder> &p_holder) override;
 	// Drops every queued/running animation (teardown).
 	void clear() override;
+
+private:
+	// Unmarks p_holder only if no other animation (move/fade/change) still
+	// references it. A holder can animate in several lists at once (e.g. an add
+	// fade while a move also slides it); unmarking on the first finish would let
+	// the layout recycle it while the remaining animation still touches its
+	// control (use-after-free once the control is released back to the pool).
+	void unmark_if_last(const Ref<ViewHolder> &p_holder);
 
 private:
 	struct MoveAnim {

@@ -27,6 +27,11 @@ public:
 	virtual void animate_remove(const Ref<ViewHolder> &p_holder, const Rect2 &p_from, const Rect2 &p_to);
 	virtual void animate_move(const Ref<ViewHolder> &p_holder, const Rect2 &p_from, const Rect2 &p_to);
 	virtual void animate_change(const Ref<ViewHolder> &p_holder, const Rect2 &p_from, const Rect2 &p_to);
+	// Cancels any running animation for the holder and unmarks it. The layout
+	// calls this when an animated holder scrolls fully out of view, so it can be
+	// recycled immediately instead of staying animating (and blocking recycling)
+	// for the whole animation period. Base is a no-op.
+	virtual void cancel_holder(const Ref<ViewHolder> &p_holder);
 	// Advances all running animations by p_delta seconds (driven by _process).
 	virtual void animate_step(double p_delta);
 	// Drops every queued/running animation and releases the held holders.

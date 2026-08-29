@@ -29,6 +29,14 @@ public:
 	void set_view_cache_size(int p_size) { m_view_cache_max = p_size; }
 	int get_view_cache_size() const { return m_view_cache_max; }
 
+	// Per-view-type recycled-pool capacity (default 12). Mirrors
+	// RecycledViewPool.setMaxRecycledViews. A larger pool smooths over layouts
+	// whose scrolled-out count per pass differs from the incoming count (e.g.
+	// grids with mixed view types and uneven row heights), keeping the created
+	// counter bounded instead of fabricating a fresh view each pass.
+	void set_view_pool_size(int p_view_type, int p_max) { m_pool.set_max_recycled_views(p_view_type, p_max); }
+	int get_view_pool_size(int p_view_type) const { return m_pool.get_max_recycled_views(p_view_type); }
+
 	// Obtains a holder for the given layout position, binding it if reused.
 	Ref<ViewHolder> get_view_for_position(int p_position);
 

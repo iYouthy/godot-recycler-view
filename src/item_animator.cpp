@@ -33,6 +33,10 @@ void ItemAnimator::animate_change(const Ref<ViewHolder> &p_holder, const Rect2 &
 	GDVIRTUAL_CALL(_animate_change, p_holder, p_from, p_to);
 }
 
+void ItemAnimator::cancel_holder(const Ref<ViewHolder> &p_holder) {
+	unmark_animating(p_holder);
+}
+
 void ItemAnimator::animate_step(double p_delta) {
 	// No-op in the base: DefaultItemAnimator drives the timeline here.
 }

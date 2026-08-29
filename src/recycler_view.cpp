@@ -805,6 +805,25 @@ void RecyclerView::recycle_removed(const Ref<ViewHolder> &p_holder) {
 	m_recycler->scrap_view(p_holder);
 }
 
+void RecyclerView::recycle_if_out_of_view(const Ref<ViewHolder> &p_holder) {
+	if (m_layout.is_null() || p_holder.is_null()) {
+		return;
+	}
+	if (!is_holder_out_of_view(p_holder)) {
+		return;
+	}
+	// The holder just finished animating and its slot is fully outside the
+	// viewport: return it to the pool immediately so rapid scrolling reuses it
+	// instead of fabricating a fresh view each animation period.
+	for (int i = 0; i < m_children.size(); i++) {
+		if (m_children[i] == p_holder) {
+			remove_item_view(p_holder);
+			recycle_view(p_holder, p_holder->get_position());
+			return;
+		}
+	}
+}
+
 void RecyclerView::capture_pre_positions() {
 	m_pre_positions.clear();
 	m_updated_holders.clear();
@@ -827,6 +846,22 @@ bool RecyclerView::in_pre_positions(const Ref<ViewHolder> &p_holder) const {
 	return false;
 }
 
+bool RecyclerView::is_holder_out_of_view(const Ref<ViewHolder> &p_holder) const {
+	if (m_layout.is_null() || p_holder.is_null()) {
+		return false;
+	}
+	const int pos = p_holder->get_position();
+	if (pos < 0) {
+		return false;  // Removed holders are handled by the remove animation.
+	}
+	const Rect2 rect = m_layout->get_item_rect(const_cast<RecyclerView *>(this), pos);
+	const Vector2 viewport = get_viewport_size();
+	if (m_layout->can_scroll_vertically()) {
+		return rect.position.y + rect.size.y <= 0.0f || rect.position.y >= viewport.y;
+	}
+	return rect.position.x + rect.size.x <= 0.0f || rect.position.x >= viewport.x;
+}
+
 void RecyclerView::dispatch_animations() {
 	for (int i = 0; i < m_pre_positions.size(); i++) {
 		PrePosition &pre = m_pre_positions.write[i];
@@ -841,6 +876,12 @@ void RecyclerView::dispatch_animations() {
 		} else if (m_children.has(pre.holder)) {
 			// Persisted: slide if it moved, pulse if it was rebound. Holders
 			// merely recycled out of the visible range are skipped entirely.
+			if (is_holder_out_of_view(pre.holder)) {
+				// An item pushed out of the viewport by the update must be
+				// recycled, not animated: its move would re-trigger on every
+				// subsequent update (never finishing) and block recycling.
+				continue;
+			}
 			Vector2 now = pre.position;
 			if (pre.holder->get_control() != nullptr) {
 				now = pre.holder->get_control()->get_position();

@@ -84,6 +84,52 @@ void DefaultItemAnimator::animate_change(const Ref<ViewHolder> &p_holder, const 
 	m_changes.push_back({ p_holder, false, 0.0f });
 }
 
+void DefaultItemAnimator::unmark_if_last(const Ref<ViewHolder> &p_holder) {
+	for (int i = 0; i < m_moves.size(); i++) {
+		if (m_moves[i].holder == p_holder) {
+			return;
+		}
+	}
+	for (int i = 0; i < m_fades.size(); i++) {
+		if (m_fades[i].holder == p_holder) {
+			return;
+		}
+	}
+	for (int i = 0; i < m_changes.size(); i++) {
+		if (m_changes[i].holder == p_holder) {
+			return;
+		}
+	}
+	unmark_animating(p_holder);
+	if (m_recycler_view != nullptr) {
+		// The holder's last animation finished: if it scrolled out of view
+		// meanwhile, return it to the pool now rather than on the next layout.
+		m_recycler_view->recycle_if_out_of_view(p_holder);
+	}
+}
+
+void DefaultItemAnimator::cancel_holder(const Ref<ViewHolder> &p_holder) {
+	// The holder scrolled out of view mid-animation: drop every queued/running
+	// animation for it so the layout can recycle it now (see
+	// LinearLayoutManager::on_layout_children).
+	for (int i = m_moves.size() - 1; i >= 0; i--) {
+		if (m_moves[i].holder == p_holder) {
+			m_moves.remove_at(i);
+		}
+	}
+	for (int i = m_fades.size() - 1; i >= 0; i--) {
+		if (m_fades[i].holder == p_holder) {
+			m_fades.remove_at(i);
+		}
+	}
+	for (int i = m_changes.size() - 1; i >= 0; i--) {
+		if (m_changes[i].holder == p_holder) {
+			m_changes.remove_at(i);
+		}
+	}
+	ItemAnimator::cancel_holder(p_holder);
+}
+
 void DefaultItemAnimator::animate_step(double p_delta) {
 	for (int i = m_moves.size() - 1; i >= 0; i--) {
 		MoveAnim &m = m_moves.write[i];
@@ -97,8 +143,9 @@ void DefaultItemAnimator::animate_step(double p_delta) {
 			control->set_position(m.from.lerp(to, ease_decelerate(t)));
 		}
 		if (t >= 1.0f) {
-			unmark_animating(m.holder);
+			const Ref<ViewHolder> holder = m.holder;
 			m_moves.remove_at(i);
+			unmark_if_last(holder);
 		}
 	}
 
@@ -112,11 +159,12 @@ void DefaultItemAnimator::animate_step(double p_delta) {
 			set_control_alpha(control, f.is_remove ? (1.0f - t) : t);
 		}
 		if (t >= 1.0f) {
+			const Ref<ViewHolder> holder = f.holder;
 			if (f.is_remove && m_recycler_view != nullptr) {
-				m_recycler_view->recycle_removed(f.holder);
+				m_recycler_view->recycle_removed(holder);
 			}
-			unmark_animating(f.holder);
 			m_fades.remove_at(i);
+			unmark_if_last(holder);
 		}
 	}
 
@@ -130,11 +178,12 @@ void DefaultItemAnimator::animate_step(double p_delta) {
 			set_control_alpha(control, 1.0f - 0.7f * Math::sin(Math_PI * t));
 		}
 		if (t >= 1.0f) {
+			const Ref<ViewHolder> holder = c.holder;
 			if (control != nullptr) {
 				set_control_alpha(control, 1.0f);
 			}
-			unmark_animating(c.holder);
 			m_changes.remove_at(i);
+			unmark_if_last(holder);
 		}
 	}
 }

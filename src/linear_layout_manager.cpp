@@ -126,6 +126,14 @@ void LinearLayoutManager::on_layout_children(RecyclerView *p_recycler_view, Stat
 			if (p_recycler_view->is_item_touch_occupied(holder)) {
 				continue;
 			}
+			// An animated holder scrolled fully out of view: cancel its
+			// animation so it can be recycled now. Without this, rapid scrolling
+			// past a mutation leaves every animated holder out of view (blocking
+			// recycling) and fabricates a fresh view per animation pass.
+			const Ref<ItemAnimator> &animator = p_recycler_view->get_item_animator();
+			if (animator.is_valid() && animator->is_animating(holder)) {
+				animator->cancel_holder(holder);
+			}
 			p_recycler_view->remove_item_view(holder);
 			p_recycler_view->recycle_view(holder, pos);
 		}
