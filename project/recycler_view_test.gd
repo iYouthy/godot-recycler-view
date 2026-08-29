@@ -9,7 +9,7 @@ class MyAdapter extends Adapter:
 		return 50
 
 	func _get_item_height(position: int) -> int:
-		return 32
+		return 60
 
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
 		return MyViewHolder.new()
@@ -21,6 +21,6 @@ class MyViewHolder extends ViewHolder:
 		control.set_anchors_preset(Control.PRESET_FULL_RECT)
 
 
-func _ready() -> void:
+func _init() -> void:
 	set_adapter(MyAdapter.new())
 	set_layout(LinearLayoutManager.new())

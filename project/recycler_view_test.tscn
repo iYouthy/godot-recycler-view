@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://ced3fv3k54d8u" path="res://recycler_view_test.gd" id="1_doquv"]
 
 [node name="RecyclerView" type="RecyclerView" unique_id=1535245526]
-anchors_preset = 15
-anchor_right = 1.0
+item_size = 60
+custom_minimum_size = Vector2(260, 0)
+anchors_preset = 9
 anchor_bottom = 1.0
-grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 0
 script = ExtResource("1_doquv")
