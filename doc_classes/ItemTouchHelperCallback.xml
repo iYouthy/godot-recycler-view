@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ItemTouchHelperCallback" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Callback that declares movement flags and handles drag / swipe commits.</brief_description>
+	<description>ItemTouchHelperCallback is the port of [i]ItemTouchHelper.Callback[/i]. Subclass it and
+override the hooks below: [method _get_movement_flags] declares which directions each
+holder can be dragged / swiped, and [method _on_move] / [method _on_swiped] apply the
+change to your data and notify the adapter.
+
+[b]Reorder + swipe example[/b]:
+[codeblock]
+class Callback extends ItemTouchHelperCallback:
+    func _get_movement_flags(holder: ViewHolder) -&gt; int:
+        return ItemTouchHelper.make_movement_flags(ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT)
+
+    func _on_move(rv: Object, dragged: ViewHolder, target: ViewHolder) -&gt; bool:
+        my_adapter.items.move(dragged.get_position(), target.get_position())
+        my_adapter.notify_item_moved(dragged.get_position(), target.get_position())
+        return true
+
+    func _on_swiped(holder: ViewHolder, direction: int) -&gt; void:
+        my_adapter.items.remove_at(holder.get_position())
+        my_adapter.notify_item_removed(holder.get_position())
+[/codeblock]</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_can_drop_over" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="selected" type="ViewHolder" />
+			<param index="1" name="target" type="ViewHolder" />
+			<description>Returns whether [code]selected[/code] may be dropped onto [code]target[/code] (default true).</description>
+		</method>
+		<method name="_clear_view" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Called after the gesture ends to clean up (after the snap-back animation).</description>
+		</method>
+		<method name="_get_bounding_box_margin" qualifiers="virtual">
+			<return type="float" />
+			<description>Returns an extra margin around the candidate target box for drag swaps (default 0).</description>
+		</method>
+		<method name="_get_move_threshold" qualifiers="virtual">
+			<return type="float" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns the drag swap threshold as a fraction of the item size (default 0.5).</description>
+		</method>
+		<method name="_get_movement_flags" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns the drag + swipe direction bits for a holder, usually built with
+[method ItemTouchHelper.make_movement_flags].</description>
+		</method>
+		<method name="_get_swipe_escape_velocity" qualifiers="virtual">
+			<return type="float" />
+			<param index="0" name="default" type="float" />
+			<description>Returns the velocity that flings the item off screen (default 120.0).</description>
+		</method>
+		<method name="_get_swipe_threshold" qualifiers="virtual">
+			<return type="float" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns the swipe commit distance threshold as a fraction of the viewport (default 0.5).</description>
+		</method>
+		<method name="_get_swipe_velocity_threshold" qualifiers="virtual">
+			<return type="float" />
+			<param index="0" name="default" type="float" />
+			<description>Reserved hook for a swipe velocity threshold (default 800.0; not currently consulted).</description>
+		</method>
+		<method name="_is_item_view_swipe_enabled" qualifiers="virtual">
+			<return type="bool" />
+			<description>Returns whether swiping is enabled (default true).</description>
+		</method>
+		<method name="_is_long_press_drag_enabled" qualifiers="virtual">
+			<return type="bool" />
+			<description>Returns whether long-press dragging is enabled (default true).</description>
+		</method>
+		<method name="_on_move" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="recycler_view" type="Object" />
+			<param index="1" name="dragged" type="ViewHolder" />
+			<param index="2" name="target" type="ViewHolder" />
+			<description>Called when the dragged holder crosses a target holder's mid-line during a drag.
+Move your data and call [method Adapter.notify_item_moved], then return true. The first
+argument is the [b]RecyclerView[/b] (typed as Object from the script side).</description>
+		</method>
+		<method name="_on_selected_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="action_state" type="int" />
+			<description>Called when a holder is selected / deselected (drag or swipe starts / ends).</description>
+		</method>
+		<method name="_on_swiped" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="direction" type="int" />
+			<description>Called when a swipe commits (the item slid off screen). Remove the data and call
+[method Adapter.notify_item_removed]. [code]direction[/code] holds the swipe direction
+bits ([constant ItemTouchHelper.UP] etc.).</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="UP" value="1" enum="Direction">
+		</constant>
+		<constant name="DOWN" value="2" enum="Direction">
+		</constant>
+		<constant name="LEFT" value="4" enum="Direction">
+		</constant>
+		<constant name="RIGHT" value="8" enum="Direction">
+		</constant>
+		<constant name="START" value="16" enum="Direction">
+		</constant>
+		<constant name="END" value="32" enum="Direction">
+		</constant>
+	</constants>
+</class>

@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="RecyclerViewScrollBar" inherits="Control" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Protocol base for a RecyclerView scroll bar (a child Control).</brief_description>
+	<description>RecyclerViewScrollBar is the protocol for scroll bars: a Control that the RecyclerView
+binds as a child and pins to the trailing edge. The RecyclerView calls
+[method on_scroll_changed] on every scroll / layout and exposes [method get_offset],
+[method get_viewport_size] and [method get_content_size]. Subclass it to draw your own bar
+in [code]_draw[/code] and handle dragging in [code]_gui_input[/code]; override
+[method _on_scroll_changed] to refresh the appearance. The built-in implementation is
+[b]DefaultScrollBar[/b].
+
+Attach via [method RecyclerView.set_scroll_bar]; the axis is chosen automatically from the
+layout direction.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_scroll_changed" qualifiers="virtual">
+			<return type="void" />
+			<description>Optional virtual called on every scroll / layout; override to refresh a custom bar.</description>
+		</method>
+		<method name="bind_to">
+			<return type="void" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Called by [method RecyclerView.set_scroll_bar]: records the RecyclerView, selects the axis from the layout direction and pins the Control to the trailing edge.</description>
+		</method>
+		<method name="get_auto_hide" qualifiers="const">
+			<return type="bool" />
+			<description>Returns the auto-hide setting.</description>
+		</method>
+		<method name="get_axis" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current axis.</description>
+		</method>
+		<method name="get_content_size" qualifiers="const">
+			<return type="int" />
+			<description>Returns the content size along the axis.</description>
+		</method>
+		<method name="get_hide_delay" qualifiers="const">
+			<return type="float" />
+			<description>Returns the hide delay.</description>
+		</method>
+		<method name="get_recycler_view" qualifiers="const">
+			<return type="RecyclerView" />
+			<description>Returns the bound RecyclerView.</description>
+		</method>
+		<method name="get_thickness" qualifiers="const">
+			<return type="float" />
+			<description>Returns the bar thickness.</description>
+		</method>
+		<method name="get_viewport_size" qualifiers="const">
+			<return type="int" />
+			<description>Returns the viewport size along the axis.</description>
+		</method>
+		<method name="on_scroll_changed">
+			<return type="void" />
+			<description>Called by the RecyclerView on every scroll / layout. The base tries the
+[method _on_scroll_changed] virtual first, then falls back to [code]queue_redraw()[/code].</description>
+		</method>
+		<method name="set_auto_hide">
+			<return type="void" />
+			<param index="0" name="enabled" type="bool" />
+			<description>Sets whether the bar fades out when the list is idle (base class stores the value; DefaultScrollBar implements it).</description>
+		</method>
+		<method name="set_axis">
+			<return type="void" />
+			<param index="0" name="axis" type="int" />
+			<description>Sets the scroll axis: [constant SCROLL_BAR_VERTICAL] or [constant SCROLL_BAR_HORIZONTAL].</description>
+		</method>
+		<method name="set_hide_delay">
+			<return type="void" />
+			<param index="0" name="delay" type="float" />
+			<description>Sets the seconds before the bar fades out after the last activity (default 0.5).</description>
+		</method>
+		<method name="set_recycler_view">
+			<return type="void" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Records the RecyclerView this bar is bound to.</description>
+		</method>
+		<method name="set_thickness">
+			<return type="void" />
+			<param index="0" name="thickness" type="float" />
+			<description>Sets the bar thickness in pixels (default 8).</description>
+		</method>
+		<method name="unbind">
+			<return type="void" />
+			<description>Clears the RecyclerView reference.</description>
+		</method>
+	</methods>
+	<members>
+		<member name="offset_bottom" type="int" setter="set_offset" getter="get_offset" overrides="Control" default="null">Inherited Control member: bottom edge offset.</member>
+		<member name="offset_left" type="int" setter="set_offset" getter="get_offset" overrides="Control" default="null">Inherited Control member: left edge offset.</member>
+		<member name="offset_right" type="int" setter="set_offset" getter="get_offset" overrides="Control" default="null">Inherited Control member: right edge offset.</member>
+		<member name="offset_top" type="int" setter="set_offset" getter="get_offset" overrides="Control" default="null">Inherited Control member: top edge offset.</member>
+	</members>
+	<constants>
+		<constant name="SCROLL_BAR_VERTICAL" value="0" enum="Axis">Vertical scroll bar (track on the right edge).</constant>
+		<constant name="SCROLL_BAR_HORIZONTAL" value="1" enum="Axis">Horizontal scroll bar (track on the bottom edge).</constant>
+	</constants>
+</class>

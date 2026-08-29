@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ItemTouchHelper" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Long-press drag-to-reorder and swipe-to-dismiss gestures.</brief_description>
+	<description>ItemTouchHelper is the port of [i]androidx.recyclerview.widget.ItemTouchHelper[/i]. It
+adds long-press drag-to-reorder and swipe-to-dismiss to a RecyclerView. Create it, attach a
+[b]ItemTouchHelperCallback[/b] subclass, then call [method attach_to_recycler_view]:
+
+[codeblock]
+var helper := ItemTouchHelper.new()
+helper.set_callback(MyCallback.new())
+helper.attach_to_recycler_view(recycler_view)
+[/codeblock]
+
+During a gesture the helper intercepts the RecyclerView's input before scrolling, pins the
+selected holder's Control under the finger (the translation model), and on release either
+snaps it back (drag cancel / failed swipe) or commits the move / swipe via the callback's
+[method ItemTouchHelperCallback._on_move] / [method ItemTouchHelperCallback._on_swiped].</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="attach_to_recycler_view">
+			<return type="void" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Attaches the helper to a RecyclerView (internally calls [method RecyclerView.set_item_touch_helper]).</description>
+		</method>
+		<method name="detach">
+			<return type="void" />
+			<description>Detaches the helper from its RecyclerView.</description>
+		</method>
+		<method name="get_action_state" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current action state: [constant ACTION_STATE_IDLE], [constant ACTION_STATE_SWIPE] or [constant ACTION_STATE_DRAG].</description>
+		</method>
+		<method name="get_callback" qualifiers="const">
+			<return type="ItemTouchHelperCallback" />
+			<description>Returns the current gesture callback.</description>
+		</method>
+		<method name="get_selected_holder" qualifiers="const">
+			<return type="ViewHolder" />
+			<description>Returns the holder currently being dragged / swiped, or an invalid Ref when none.</description>
+		</method>
+		<method name="is_dragging" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether a drag is in progress.</description>
+		</method>
+		<method name="is_occupied" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns whether the holder is being dragged / swiped or animating back; such holders are excluded from item animations.</description>
+		</method>
+		<method name="make_movement_flags" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="drag_flags" type="int" />
+			<param index="1" name="swipe_flags" type="int" />
+			<description>Static helper that packs [code]drag_flags[/code] and [code]swipe_flags[/code] direction bits into the movement-flags int returned by [method ItemTouchHelperCallback._get_movement_flags].</description>
+		</method>
+		<method name="set_callback">
+			<return type="void" />
+			<param index="0" name="callback" type="ItemTouchHelperCallback" />
+			<description>Sets the [b]ItemTouchHelperCallback[/b] that declares movement flags and handles move / swipe commits.</description>
+		</method>
+		<method name="set_long_press_timeout">
+			<return type="void" />
+			<param index="0" name="ms" type="float" />
+			<description>Sets the long-press timeout in milliseconds (default 0.4s) before a drag starts.</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="ACTION_STATE_IDLE" value="0" enum="ActionState">No gesture in progress.</constant>
+		<constant name="ACTION_STATE_SWIPE" value="1" enum="ActionState">A swipe gesture is in progress.</constant>
+		<constant name="ACTION_STATE_DRAG" value="2" enum="ActionState">A drag gesture is in progress.</constant>
+		<constant name="UP" value="1" enum="Direction">Drag / swipe direction bit: up.</constant>
+		<constant name="DOWN" value="2" enum="Direction">Drag / swipe direction bit: down.</constant>
+		<constant name="LEFT" value="4" enum="Direction">Drag / swipe direction bit: left.</constant>
+		<constant name="RIGHT" value="8" enum="Direction">Drag / swipe direction bit: right.</constant>
+		<constant name="START" value="16" enum="Direction">Drag / swipe direction bit: start (left in this LTR-only port).</constant>
+		<constant name="END" value="32" enum="Direction">Drag / swipe direction bit: end (right in this LTR-only port).</constant>
+	</constants>
+</class>

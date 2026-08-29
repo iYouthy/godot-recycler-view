@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ListUpdateCallback" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Abstract receiver of incremental list update events.</brief_description>
+	<description>ListUpdateCallback is the port of [i]ListUpdateCallback[/i]: the sink that receives the
+insert / remove / move / change events produced by a diff. The RecyclerView-side
+implementations ([b]AdapterListUpdateCallback[/b], [b]BatchingListUpdateCallback[/b])
+forward them into adapter notify calls. Subclass and override the [code]_on_*[/code] hooks
+to consume updates yourself.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Called when [code]count[/code] items at [code]position[/code] changed, with an optional payload.</description>
+		</method>
+		<method name="_on_inserted" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when items were inserted at [code]position[/code] / [code]count[/code].</description>
+		</method>
+		<method name="_on_moved" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Called when an item moved from [code]from_position[/code] to [code]to_position[/code].</description>
+		</method>
+		<method name="_on_removed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when items were removed at [code]position[/code] / [code]count[/code].</description>
+		</method>
+	</methods>
+</class>

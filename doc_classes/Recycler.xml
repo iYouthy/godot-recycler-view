@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Recycler" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Internal holder of the view cache, recycled pool and scrap.</brief_description>
+	<description>Recycler is an internal port of [i]RecyclerView.Recycler[/i]. It obtains ViewHolders for
+positions — checking the changed scrap, then the position-bound view cache, then the
+per-type recycled pool, then the adapter — and recycles them back. The RecyclerView owns
+one instance ([method RecyclerView.get_recycler]); you only need it to tune cache / pool
+capacities for unusual workloads.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="clear">
+			<return type="void" />
+			<description>Clears the cache, scrap and pool.</description>
+		</method>
+		<method name="flush_scrap_to_pool">
+			<return type="void" />
+			<description>Moves the scrapped holders to the cache / pool at the end of a layout cycle.</description>
+		</method>
+		<method name="get_adapter" qualifiers="const">
+			<return type="Adapter" />
+			<description>Returns the current adapter.</description>
+		</method>
+		<method name="get_cached_view_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns how many holders are in the view cache.</description>
+		</method>
+		<method name="get_changed_scrap_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns how many holders are in the changed scrap.</description>
+		</method>
+		<method name="get_recycled_view_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="view_type" type="int" />
+			<description>Returns how many holders of a view type are pooled.</description>
+		</method>
+		<method name="get_view_cache_size" qualifiers="const">
+			<return type="int" />
+			<description>Returns the view cache size.</description>
+		</method>
+		<method name="get_view_for_position">
+			<return type="ViewHolder" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the [b]ViewHolder[/b] for a position, reusing from cache / pool or creating one.</description>
+		</method>
+		<method name="get_view_pool_size" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="view_type" type="int" />
+			<description>Returns the per-type pool capacity.</description>
+		</method>
+		<method name="prefetch_view">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Pre-creates an unbound holder for a position into the pool (prefetch).</description>
+		</method>
+		<method name="recycle_view">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<description>Returns a holder to the cache or pool.</description>
+		</method>
+		<method name="scrap_view">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Keeps a holder removed by an update in the changed scrap for the layout cycle.</description>
+		</method>
+		<method name="set_adapter">
+			<return type="void" />
+			<param index="0" name="adapter" type="Adapter" />
+			<description>Sets the adapter the recycler pulls data from.</description>
+		</method>
+		<method name="set_view_cache_size">
+			<return type="void" />
+			<param index="0" name="size" type="int" />
+			<description>Sets the size of the position-bound view cache (default 1).</description>
+		</method>
+		<method name="set_view_pool_size">
+			<return type="void" />
+			<param index="0" name="view_type" type="int" />
+			<param index="1" name="max" type="int" />
+			<description>Sets the per-type recycled pool capacity (default 20, about a screen of items).</description>
+		</method>
+		<method name="size" qualifiers="const">
+			<return type="int" />
+			<description>Returns the total number of holders held (cache + pool + scrap).</description>
+		</method>
+	</methods>
+</class>

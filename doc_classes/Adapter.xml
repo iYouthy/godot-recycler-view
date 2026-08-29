@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="Adapter" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Base adapter that provides item Views to a RecyclerView.</brief_description>
+	<description>Adapter is the port of [i]RecyclerView.Adapter[/i]. A GDScript subclass must implement
+[method _get_item_count], [method _create_item] and [method _bind_item]; it may optionally
+override [method _get_item_view_type], [method _get_item_height] and [method _get_item_id].
+
+[b]Minimal subclass[/b]:
+[codeblock]
+class MyAdapter extends Adapter:
+    var items: Array = []
+
+    func _get_item_count() -&gt; int:
+        return items.size()
+
+    func _create_item(parent: Control, view_type: int) -&gt; ViewHolder:
+        var vh := ViewHolder.new()
+        var label := Label.new()
+        label.set_size(Vector2(200, 40))
+        vh.set_control(label)
+        return vh
+
+    func _bind_item(holder: ViewHolder, position: int) -&gt; void:
+        (holder.get_control() as Label).text = str(items[position])
+[/codeblock]
+
+The engine calls [method create_view_holder] (which invokes [method _create_item]) when a new
+position needs a holder, then [method bind_view_holder] (which invokes [method _bind_item]).
+Data changes are reported through the [code]notify_item_*[/code] methods; when the adapter is
+attached to a RecyclerView the notifications are forwarded to it automatically.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_bind_item" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<description>Must override. Binds the data at [code]position[/code] onto the holder's Control.</description>
+		</method>
+		<method name="_bind_item_with_payload" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Optional. Called instead of [method _bind_item] when a change notification carries a
+[code]payload[/code], so only the affected part of the cell needs to be rebound.</description>
+		</method>
+		<method name="_create_item" qualifiers="virtual">
+			<return type="ViewHolder" />
+			<param index="0" name="parent" type="Control" />
+			<param index="1" name="view_type" type="int" />
+			<description>Must override. Creates a new [b]ViewHolder[/b] wrapping a Control for the given
+[code]view_type[/code]. Called when the recycled pool has no holder of that type.</description>
+		</method>
+		<method name="_get_item_count" qualifiers="virtual">
+			<return type="int" />
+			<description>Must override. Returns the total number of items in the list.</description>
+		</method>
+		<method name="_get_item_height" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Optional. Returns the item's size along the scroll axis. Values &lt;= 0 fall back to the
+RecyclerView's [method RecyclerView.get_item_size]. Defaults to 0.</description>
+		</method>
+		<method name="_get_item_id" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Optional. Returns a stable unique id for the item at [code]position[/code] (used with stable ids).</description>
+		</method>
+		<method name="_get_item_view_type" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Optional. Returns the view type of the item at [code]position[/code]. Items with different
+types get separate recycled-pool slots. Defaults to 0 (a single type).</description>
+		</method>
+		<method name="_on_failed_to_recycle_view" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Reserved for future use; not currently called by the engine.</description>
+		</method>
+		<method name="_on_item_recycled" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Reserved for future use; not currently called by the engine.</description>
+		</method>
+		<method name="_on_view_attached_to_window" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Reserved for future use; not currently called by the engine.</description>
+		</method>
+		<method name="_on_view_detached_from_window" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Reserved for future use; not currently called by the engine.</description>
+		</method>
+		<method name="bind_view_holder">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<description>Internal. Records the position / stable id, flags the holder bound and calls
+[method _bind_item].</description>
+		</method>
+		<method name="bind_view_holder_with_payload">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Internal. Rebinds with a payload via [method _bind_item_with_payload] when available,
+falling back to [method bind_view_holder] otherwise.</description>
+		</method>
+		<method name="create_view_holder">
+			<return type="ViewHolder" />
+			<param index="0" name="parent" type="Control" />
+			<param index="1" name="view_type" type="int" />
+			<description>Internal. Creates a holder by calling [method _create_item] and records its view type.</description>
+		</method>
+		<method name="get_item_count">
+			<return type="int" />
+			<description>Returns the total number of items (forwards [method _get_item_count]; ListAdapter overrides it).</description>
+		</method>
+		<method name="get_item_id">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the stable id of the item at [code]position[/code] (forwards [method _get_item_id]).</description>
+		</method>
+		<method name="get_item_view_type">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the view type of the item at [code]position[/code] (forwards [method _get_item_view_type]).</description>
+		</method>
+		<method name="has_observers" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether any data observer is currently registered.</description>
+		</method>
+		<method name="has_stable_ids" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether stable ids are enabled.</description>
+		</method>
+		<method name="notify_data_set_changed">
+			<return type="void" />
+			<description>Notifies observers that the whole data set changed.</description>
+		</method>
+		<method name="notify_item_changed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Shorthand for a single-item [method notify_item_range_changed] with count 1.</description>
+		</method>
+		<method name="notify_item_inserted">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Shorthand for a single-item [method notify_item_range_inserted].</description>
+		</method>
+		<method name="notify_item_moved">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Notifies that an item moved from [code]from_position[/code] to [code]to_position[/code].</description>
+		</method>
+		<method name="notify_item_range_changed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Notifies that [code]count[/code] items at [code]position[/code] changed content, with an optional payload.</description>
+		</method>
+		<method name="notify_item_range_inserted">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Notifies that [code]count[/code] items were inserted at [code]position[/code].</description>
+		</method>
+		<method name="notify_item_range_removed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Notifies that [code]count[/code] items were removed starting at [code]position[/code].</description>
+		</method>
+		<method name="notify_item_removed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Shorthand for a single-item [method notify_item_range_removed].</description>
+		</method>
+		<method name="register_adapter_data_observer">
+			<return type="void" />
+			<param index="0" name="observer" type="AdapterDataObserver" />
+			<description>Registers an [b]AdapterDataObserver[/b] to receive data-change notifications.</description>
+		</method>
+		<method name="set_has_stable_ids">
+			<return type="void" />
+			<param index="0" name="has_stable_ids" type="bool" />
+			<description>Enables or disables stable ids. Refusing to change while observers are registered matches
+the Android behavior.</description>
+		</method>
+		<method name="unregister_adapter_data_observer">
+			<return type="void" />
+			<param index="0" name="observer" type="AdapterDataObserver" />
+			<description>Unregisters a data observer.</description>
+		</method>
+	</methods>
+</class>

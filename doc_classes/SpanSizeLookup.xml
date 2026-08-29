@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="SpanSizeLookup" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Reports how many grid columns each item occupies.</brief_description>
+	<description>SpanSizeLookup is the port of [i]GridLayoutManager.SpanSizeLookup[/i]. Subclass it and
+override [method _get_span_size] to let specific items span multiple columns of a
+[b]GridLayoutManager[/b] (for example, a full-width header). A span size of 1 means the
+item occupies one column; the grid clamps the result to [code][1, span_count][/code].</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_span_size" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Must override. Returns the number of grid columns the item at [code]position[/code] occupies (&gt;= 1; values &lt;= 0 are clamped to 1).</description>
+		</method>
+	</methods>
+</class>

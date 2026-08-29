@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DiffUtil" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Static entry point that computes the diff between two lists.</brief_description>
+	<description>DiffUtil is the port of [i]androidx.recyclerview.widget.DiffUtil[/i]. Call
+[method calculate_diff] with a [b]DiffUtilCallback[/b] subclass to compute the minimal
+update script between an old and a new list. The returned [b]DiffResult[/b] can be
+dispatched to a [b]ListUpdateCallback[/b]. Most users go through
+[method ListAdapter.submit_list] instead, which wires this up automatically.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="calculate_diff" qualifiers="static">
+			<return type="DiffResult" />
+			<param index="0" name="callback" type="DiffUtilCallback" />
+			<param index="1" name="detect_moves" type="bool" default="true" />
+			<description>Static. Computes the diff between the old and new lists described by [code]callback[/code] and returns a [b]DiffResult[/b]. When [code]detect_moves[/code] is true (default) it also detects moves.</description>
+		</method>
+	</methods>
+</class>

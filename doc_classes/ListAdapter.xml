@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ListAdapter" inherits="Adapter" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Adapter backed by an Array that auto-diffs on submit_list().</brief_description>
+	<description>ListAdapter wraps a plain Array and a [b]DiffUtilItemCallback[/b]. Calling
+[method submit_list] diffs the current list against the new one and dispatches the
+incremental updates to any attached RecyclerView automatically, so only real changes are
+animated. [method _get_item_count] is provided by this class; subclasses implement
+[method Adapter._create_item] / [method Adapter._bind_item] and read their data through
+[method get_item].
+
+[b]Setup[/b]:
+[codeblock]
+var adapter := MyListAdapter.new()
+adapter.set_diff_callback(MyDiffCallback.new())
+recycler_view.set_adapter(adapter)
+# later, on data change:
+adapter.submit_list(new_items)
+[/codeblock]
+where [code]MyDiffCallback[/code] extends [b]DiffUtilItemCallback[/b] and implements
+[method DiffUtilItemCallback._are_items_the_same] / [method DiffUtilItemCallback._are_contents_the_same].</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_current_list_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="previous_list" type="Array" />
+			<param index="1" name="current_list" type="Array" />
+			<description>Called after a successful [method submit_list], with the previous and current lists.</description>
+		</method>
+		<method name="get_current_list" qualifiers="const">
+			<return type="Array" />
+			<description>Returns the currently held list.</description>
+		</method>
+		<method name="get_diff_callback" qualifiers="const">
+			<return type="DiffUtilItemCallback" />
+			<description>Returns the current diff callback.</description>
+		</method>
+		<method name="get_item" qualifiers="const">
+			<return type="Variant" />
+			<param index="0" name="index" type="int" />
+			<description>Returns the item at [code]index[/code], or null when out of range.</description>
+		</method>
+		<method name="set_diff_callback">
+			<return type="void" />
+			<param index="0" name="callback" type="DiffUtilItemCallback" />
+			<description>Sets the [b]DiffUtilItemCallback[/b] used to compare items when submitting a new list.</description>
+		</method>
+		<method name="submit_list">
+			<return type="void" />
+			<param index="0" name="list" type="Array" />
+			<description>Diffs the current list against [code]list[/code] and dispatches incremental updates.
+Passing the same array instance is a no-op. The diff runs synchronously.</description>
+		</method>
+	</methods>
+</class>

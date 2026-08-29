@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="SnapHelper" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Aligns the list to a snapped item after fling or scroll stop.</brief_description>
+	<description>SnapHelper is the port of [i]RecyclerView.SnapHelper[/i]. Attached to a RecyclerView, it
+takes over flings and, when the list stops scrolling, snaps it so the target item aligns to
+the viewport. Use the built-in [b]LinearSnapHelper[/b] (center-align to the item nearest
+the viewport middle) or [b]PagerSnapHelper[/b] (align a full page per fling):
+
+[codeblock]
+var snap := LinearSnapHelper.new()
+snap.attach_to_recycler_view(recycler_view)
+[/codeblock]
+
+[b]Note:[/b] the three Android snap hooks ([code]findSnapView[/code], etc.) are C++ virtuals,
+not script-overridable. To customize snapping you would need a C++ subclass.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="attach_to_recycler_view">
+			<return type="void" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Binds the helper to a RecyclerView (sets [method RecyclerView.set_snap_helper] and
+registers a scroll listener) and immediately snaps the current content.</description>
+		</method>
+		<method name="detach">
+			<return type="void" />
+			<description>Unbinds the helper and removes its scroll listener.</description>
+		</method>
+		<method name="on_fling">
+			<return type="bool" />
+			<param index="0" name="velocity" type="float" />
+			<description>Called by the RecyclerView before an inertial fling starts. Returns true when this
+helper took over (it already smooth-scrolled to the snapped target).</description>
+		</method>
+	</methods>
+</class>

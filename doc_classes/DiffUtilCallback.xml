@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DiffUtilCallback" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Abstract, position-based comparison callback for DiffUtil.</brief_description>
+	<description>DiffUtilCallback is the port of [i]DiffUtil.Callback[/i]. Subclass it to describe the old
+and new lists by position; DiffUtil uses [method _are_items_the_same] to pair items and
+[method _are_contents_the_same] to detect content changes. Prefer the object-based
+[b]DiffUtilItemCallback[/b] with [b]ListAdapter[/b] unless you need the position-based
+variant.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_are_contents_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="old_item_position" type="int" />
+			<param index="1" name="new_item_position" type="int" />
+			<description>Returns whether the paired items have identical content.</description>
+		</method>
+		<method name="_are_items_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="old_item_position" type="int" />
+			<param index="1" name="new_item_position" type="int" />
+			<description>Returns whether the items at the given old / new positions are the same item.</description>
+		</method>
+		<method name="_get_change_payload" qualifiers="virtual">
+			<return type="Variant" />
+			<param index="0" name="old_item_position" type="int" />
+			<param index="1" name="new_item_position" type="int" />
+			<description>Optional. Returns a change payload for a content change.</description>
+		</method>
+		<method name="_get_new_list_size" qualifiers="virtual">
+			<return type="int" />
+			<description>Returns the size of the new list.</description>
+		</method>
+		<method name="_get_old_list_size" qualifiers="virtual">
+			<return type="int" />
+			<description>Returns the size of the old list.</description>
+		</method>
+	</methods>
+</class>

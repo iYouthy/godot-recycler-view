@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="SortedListCallback" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Compares items and receives SortedList change events.</brief_description>
+	<description>SortedListCallback is the port of [i]SortedList.Callback[/i]. Subclass it to define item
+ordering ([method _compare]), identity ([method _are_items_the_same]) and content equality
+([method _are_contents_the_same]) for a [b]SortedList[/b], and to consume the emitted
+insert / remove / move / change events.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_are_contents_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="old_item" type="Variant" />
+			<param index="1" name="new_item" type="Variant" />
+			<description>Returns whether two items have identical content.</description>
+		</method>
+		<method name="_are_items_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="item1" type="Variant" />
+			<param index="1" name="item2" type="Variant" />
+			<description>Returns whether two items represent the same data.</description>
+		</method>
+		<method name="_compare" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="o1" type="Variant" />
+			<param index="1" name="o2" type="Variant" />
+			<description>Returns &lt; 0 when [code]a[/code] sorts before [code]b[/code], &gt; 0 when after, 0 when equal.</description>
+		</method>
+		<method name="_get_change_payload" qualifiers="virtual">
+			<return type="Variant" />
+			<param index="0" name="item1" type="Variant" />
+			<param index="1" name="item2" type="Variant" />
+			<description>Optional. Returns a change payload.</description>
+		</method>
+		<method name="_on_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when an item changed.</description>
+		</method>
+		<method name="_on_changed_with_payload" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Called when an item changed with a payload.</description>
+		</method>
+		<method name="_on_inserted" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when an item was inserted.</description>
+		</method>
+		<method name="_on_moved" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Called when an item moved.</description>
+		</method>
+		<method name="_on_removed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when an item was removed.</description>
+		</method>
+	</methods>
+</class>

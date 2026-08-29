@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="GridLayoutManager" inherits="LinearLayoutManager" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Lays items out in a fixed number of columns (or rows).</brief_description>
+	<description>GridLayoutManager arranges items into a grid with [method set_span_count] columns
+(rows for a horizontal layout). Items are placed left to right until the accumulated span
+fills a line, then a new line starts. Row height is the tallest item in the row. Items may
+span multiple columns via a [b]SpanSizeLookup[/b].
+
+[b]Example[/b]:
+[codeblock]
+var layout := GridLayoutManager.new()
+layout.set_span_count(3)
+recycler_view.set_layout(layout)
+[/codeblock]
+Use [method set_span_size_lookup] to let some items span multiple columns.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_item_column" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the column the item at [code]position[/code] is placed in (0 when out of range).</description>
+		</method>
+		<method name="get_item_row" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the row the item at [code]position[/code] is placed in (0 when out of range).</description>
+		</method>
+		<method name="get_row_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the total number of rows.</description>
+		</method>
+		<method name="get_row_height" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="row" type="int" />
+			<description>Returns the height of the given row (0 when out of range).</description>
+		</method>
+		<method name="get_row_offset" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="row" type="int" />
+			<description>Returns the starting offset of the given row (0 when out of range).</description>
+		</method>
+		<method name="get_span_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the number of columns.</description>
+		</method>
+		<method name="get_span_size_lookup" qualifiers="const">
+			<return type="SpanSizeLookup" />
+			<description>Returns the current span size lookup.</description>
+		</method>
+		<method name="set_span_count">
+			<return type="void" />
+			<param index="0" name="span_count" type="int" />
+			<description>Sets the number of columns (rows for horizontal), minimum 1. Marks the row model dirty.</description>
+		</method>
+		<method name="set_span_size_lookup">
+			<return type="void" />
+			<param index="0" name="lookup" type="SpanSizeLookup" />
+			<description>Sets the [b]SpanSizeLookup[/b] that reports how many columns each item spans. The row model is rebuilt.</description>
+		</method>
+	</methods>
+</class>

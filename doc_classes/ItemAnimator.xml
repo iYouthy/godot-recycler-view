@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ItemAnimator" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Base class for animating item add / remove / move / change.</brief_description>
+	<description>ItemAnimator is the port of [i]RecyclerView.ItemAnimator[/i]. After an incremental update
+the RecyclerView runs a two-pass layout (recording before/after rects) and dispatches the
+appropriate [code]_animate_*[/code] callback for every affected holder. The default
+implementation is [b]DefaultItemAnimator[/b]; subclass this class to drive your own
+tweens instead.
+
+Override one or more of [method _animate_add], [method _animate_remove],
+[method _animate_move] and [method _animate_change], and remember to release the holder
+(e.g. via [method RecyclerView.recycle_view]) once your animation finishes so it can be
+recycled.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_animate_add" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="from" type="Rect2" />
+			<param index="2" name="to" type="Rect2" />
+			<description>Called for a newly added item. [code]from[/code] / [code]to[/code] are the pre/post layout rects.</description>
+		</method>
+		<method name="_animate_change" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="from" type="Rect2" />
+			<param index="2" name="to" type="Rect2" />
+			<description>Called when an item's content changes.</description>
+		</method>
+		<method name="_animate_move" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="from" type="Rect2" />
+			<param index="2" name="to" type="Rect2" />
+			<description>Called when an item moves from one position to another.</description>
+		</method>
+		<method name="_animate_remove" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="from" type="Rect2" />
+			<param index="2" name="to" type="Rect2" />
+			<description>Called for a removed item.</description>
+		</method>
+		<method name="is_animating" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns whether the holder is currently animating.</description>
+		</method>
+		<method name="is_running" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether any animation is still running.</description>
+		</method>
+		<method name="mark_animating">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Marks a holder as animating (adds it to the animating list).</description>
+		</method>
+		<method name="unmark_animating">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Removes a holder from the animating list.</description>
+		</method>
+	</methods>
+</class>

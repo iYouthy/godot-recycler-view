@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="AdapterDataObserver" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Receives Adapter data-change notifications.</brief_description>
+	<description>AdapterDataObserver is the port of [i]RecyclerView.AdapterDataObserver[/i]. Register an
+instance on an [b]Adapter[/b] via [method Adapter.register_adapter_data_observer] and
+override the [code]_on_*[/code] hooks to react to data changes. The RecyclerView uses one
+internally to stay in sync with the adapter.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_changed" qualifiers="virtual">
+			<return type="void" />
+			<description>Called when the whole data set changed.</description>
+		</method>
+		<method name="_on_item_moved" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Called when an item moved.</description>
+		</method>
+		<method name="_on_item_range_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Called when items changed content (with an optional payload).</description>
+		</method>
+		<method name="_on_item_range_inserted" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when items were inserted.</description>
+		</method>
+		<method name="_on_item_range_removed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Called when items were removed.</description>
+		</method>
+		<method name="_on_state_restoration_policy_changed" qualifiers="virtual">
+			<return type="void" />
+			<description>Called when the state restoration policy changed.</description>
+		</method>
+	</methods>
+</class>

@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="State" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Carries layout state between layout passes.</brief_description>
+	<description>State is an internal port of [i]RecyclerView.State[/i]: it carries layout state between
+the pre-layout and the final layout pass (item counts, target scroll position, layout
+step). You normally do not touch it; it exists so LayoutManagers can read counts and flags
+during layout.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="did_structure_change" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the data structure changed since the last layout.</description>
+		</method>
+		<method name="get_deleted_invisible_item_count_since_previous_layout" qualifiers="const">
+			<return type="int" />
+			<description>Returns how many invisible items were deleted since the previous layout.</description>
+		</method>
+		<method name="get_item_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current item count (adjusted for invisible removed items during pre-layout).</description>
+		</method>
+		<method name="get_layout_step" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current layout step.</description>
+		</method>
+		<method name="get_previous_layout_item_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the item count from the previous layout.</description>
+		</method>
+		<method name="get_target_scroll_position" qualifiers="const">
+			<return type="int" />
+			<description>Returns the requested target scroll position.</description>
+		</method>
+		<method name="has_target_scroll_position" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether a target scroll position was requested.</description>
+		</method>
+		<method name="is_measuring" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the RecyclerView is in measuring state.</description>
+		</method>
+		<method name="is_pre_layout" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the current pass is the pre-layout.</description>
+		</method>
+		<method name="prepare_for_nested_prefetch">
+			<return type="void" />
+			<param index="0" name="item_count" type="int" />
+			<description>Resets layout state for a nested prefetch.</description>
+		</method>
+		<method name="set_deleted_invisible_item_count_since_previous_layout">
+			<return type="void" />
+			<param index="0" name="count" type="int" />
+			<description>Sets the count of invisible deleted items.</description>
+		</method>
+		<method name="set_item_count">
+			<return type="void" />
+			<param index="0" name="count" type="int" />
+			<description>Sets the item count.</description>
+		</method>
+		<method name="set_layout_step">
+			<return type="void" />
+			<param index="0" name="step" type="int" />
+			<description>Sets the layout step.</description>
+		</method>
+		<method name="set_measuring">
+			<return type="void" />
+			<param index="0" name="measuring" type="bool" />
+			<description>Sets the measuring state.</description>
+		</method>
+		<method name="set_pre_layout">
+			<return type="void" />
+			<param index="0" name="in_pre_layout" type="bool" />
+			<description>Sets the pre-layout flag.</description>
+		</method>
+		<method name="set_previous_layout_item_count">
+			<return type="void" />
+			<param index="0" name="count" type="int" />
+			<description>Sets the previous layout item count.</description>
+		</method>
+		<method name="set_run_predictive_animations">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>Sets the predictive-animation flag.</description>
+		</method>
+		<method name="set_run_simple_animations">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>Sets the simple-animation flag.</description>
+		</method>
+		<method name="set_structure_changed">
+			<return type="void" />
+			<param index="0" name="changed" type="bool" />
+			<description>Sets the structure-changed flag.</description>
+		</method>
+		<method name="set_target_scroll_position">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Sets the requested target scroll position.</description>
+		</method>
+		<method name="will_run_predictive_animations" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether predictive animations will run.</description>
+		</method>
+		<method name="will_run_simple_animations" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether simple animations will run.</description>
+		</method>
+	</methods>
+</class>

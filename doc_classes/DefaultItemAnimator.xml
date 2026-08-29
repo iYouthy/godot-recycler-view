@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DefaultItemAnimator" inherits="ItemAnimator" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Standard fade / slide animations for add, remove, move and change.</brief_description>
+	<description>DefaultItemAnimator is the built-in item animator and the RecyclerView default. It fades
+added items in, fades removed items out (recycling them when finished), and slides moved
+items from their pre-layout position to the current target (so they follow scrolling). The
+animation durations are fixed (move 0.3s, add/remove 0.25s, change 0.2s) and cannot be
+configured from GDScript. To customize timing or effects, subclass [b]ItemAnimator[/b]
+instead.</description>
+	<tutorials>
+	</tutorials>
+</class>

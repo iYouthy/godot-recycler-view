@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="PagerSnapHelper" inherits="SnapHelper" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Snaps one full page per fling, like a pager.</brief_description>
+	<description>PagerSnapHelper snaps a full page per fling: the velocity only decides the direction
+(forward / back), and the target is the next page boundary in that direction. Pages never
+skip.</description>
+	<tutorials>
+	</tutorials>
+</class>

@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="LinearLayoutManager" inherits="LayoutManager" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Lays items out in a single vertical column or horizontal row.</brief_description>
+	<description>LinearLayoutManager places items one after another along the scroll axis, supporting
+variable item heights. It is the default layout for a plain list.
+
+[b]Horizontal list[/b]:
+[codeblock]
+var layout := LinearLayoutManager.new()
+layout.set_orientation(LinearLayoutManager.HORIZONTAL)
+recycler_view.set_layout(layout)
+[/codeblock]
+
+Use [method set_reverse_layout] to start from the bottom / trailing edge (chat lists).</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_cached_item_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the number of cached items in the offset table (size - 1).</description>
+		</method>
+		<method name="get_item_offset" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the starting coordinate of the item at [code]position[/code] in the accumulated offset table (0 when out of range).</description>
+		</method>
+		<method name="get_orientation" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current orientation.</description>
+		</method>
+		<method name="set_orientation">
+			<return type="void" />
+			<param index="0" name="orientation" type="int" />
+			<description>Sets the layout direction: [constant VERTICAL] (default) or [constant HORIZONTAL].</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="VERTICAL" value="0" enum="Orientation">Vertical orientation (one item per row, scrolling down).</constant>
+		<constant name="HORIZONTAL" value="1" enum="Orientation">Horizontal orientation (one item per column, scrolling right).</constant>
+	</constants>
+</class>

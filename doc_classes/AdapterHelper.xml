@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="AdapterHelper" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Queues and applies incremental update operations.</brief_description>
+	<description>AdapterHelper is an internal port of [i]RecyclerView.AdapterHelper[/i]: it queues the
+[code]notify_item_*[/code] operations, sorts / merges them, and applies them to the
+cached ViewHolders' positions at the end of the frame. You normally do not touch it;
+use the [b]RecyclerView[/b] notify methods instead.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="apply_pending_updates_to_position" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Applies all queued operations to a given position.</description>
+		</method>
+		<method name="apply_updates_to_holder">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Applies queued operations to a holder's stored position.</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>Clears all queued updates.</description>
+		</method>
+		<method name="has_pending_updates" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether any update is still queued.</description>
+		</method>
+		<method name="on_item_range_changed">
+			<return type="bool" />
+			<param index="0" name="position_start" type="int" />
+			<param index="1" name="item_count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Queues a content-change operation.</description>
+		</method>
+		<method name="on_item_range_inserted">
+			<return type="bool" />
+			<param index="0" name="position_start" type="int" />
+			<param index="1" name="item_count" type="int" />
+			<description>Queues an insert operation.</description>
+		</method>
+		<method name="on_item_range_moved">
+			<return type="bool" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Queues a move operation.</description>
+		</method>
+		<method name="on_item_range_removed">
+			<return type="bool" />
+			<param index="0" name="position_start" type="int" />
+			<param index="1" name="item_count" type="int" />
+			<description>Queues a remove operation.</description>
+		</method>
+	</methods>
+</class>

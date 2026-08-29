@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ViewHolder" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Wraps the Control that displays a single item.</brief_description>
+	<description>ViewHolder is the port of [i]RecyclerView.ViewHolder[/i]: a lightweight object that wraps the
+Control displaying one item. It is created by [method Adapter._create_item], bound by
+[method Adapter._bind_item], and recycled when its position scrolls out of view. The
+[method get_control] / [method set_control] pair manages the underlying Control; the
+[code]get_position[/code] / [code]get_item_view_type[/code] accessors report the holder's
+current adapter position and view type.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_flags">
+			<return type="void" />
+			<param index="0" name="flags" type="int" />
+			<description>Adds the given flag bits.</description>
+		</method>
+		<method name="clear_old_position">
+			<return type="void" />
+			<description>Clears the saved old and pre-layout positions.</description>
+		</method>
+		<method name="flag_removed_and_offset_position">
+			<return type="void" />
+			<param index="0" name="new_position" type="int" />
+			<param index="1" name="offset" type="int" />
+			<param index="2" name="apply_to_pre_layout" type="bool" />
+			<description>Marks the holder removed and shifts its position (used during remove animations).</description>
+		</method>
+		<method name="get_flags" qualifiers="const">
+			<return type="int" />
+			<description>Returns the full flag bitmask.</description>
+		</method>
+		<method name="get_item_view_type" qualifiers="const">
+			<return type="int" />
+			<description>Returns the view type of this holder.</description>
+		</method>
+		<method name="get_layout_position" qualifiers="const">
+			<return type="int" />
+			<description>Returns the layout position, preferring the pre-layout position when one exists.</description>
+		</method>
+		<method name="get_old_position" qualifiers="const">
+			<return type="int" />
+			<description>Returns the old position saved before an update.</description>
+		</method>
+		<method name="get_position" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current adapter position.</description>
+		</method>
+		<method name="get_stable_id" qualifiers="const">
+			<return type="int" />
+			<description>Returns the stable id of this holder, or -1 when none is set.</description>
+		</method>
+		<method name="is_adapter_position_unknown" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_ADAPTER_POSITION_UNKNOWN] flag.</description>
+		</method>
+		<method name="is_bound" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_BOUND] flag.</description>
+		</method>
+		<method name="is_invalid" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_INVALID] flag.</description>
+		</method>
+		<method name="is_recyclable" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder may be recycled.</description>
+		</method>
+		<method name="is_removed" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder's data has been removed.</description>
+		</method>
+		<method name="is_tmp_detached" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_TMP_DETACHED] flag.</description>
+		</method>
+		<method name="is_updated" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_UPDATE] flag.</description>
+		</method>
+		<method name="offset_position">
+			<return type="void" />
+			<param index="0" name="offset" type="int" />
+			<param index="1" name="apply_to_pre_layout" type="bool" />
+			<description>Shifts the holder's position by [code]offset[/code], recording old / pre-layout positions.</description>
+		</method>
+		<method name="reset_internal">
+			<return type="void" />
+			<description>Resets internal state when the holder is recycled.</description>
+		</method>
+		<method name="save_old_position">
+			<return type="void" />
+			<description>Stores the current position as the old position.</description>
+		</method>
+		<method name="set_flags">
+			<return type="void" />
+			<param index="0" name="flags" type="int" />
+			<param index="1" name="mask" type="int" />
+			<description>Sets or clears the given flag bits according to [code]mask[/code].</description>
+		</method>
+		<method name="set_is_recyclable">
+			<return type="void" />
+			<param index="0" name="recyclable" type="bool" />
+			<description>Increases/decreases the recyclable count and sets or clears [constant FLAG_NOT_RECYCLABLE].</description>
+		</method>
+		<method name="set_item_view_type">
+			<return type="void" />
+			<param index="0" name="type" type="int" />
+			<description>Sets the view type of this holder.</description>
+		</method>
+		<method name="set_position">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Sets the adapter position.</description>
+		</method>
+		<method name="set_stable_id">
+			<return type="void" />
+			<param index="0" name="id" type="int" />
+			<description>Sets the stable id of this holder.</description>
+		</method>
+		<method name="should_ignore" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether the holder has the [constant FLAG_IGNORE] flag (layout / animation should skip it).</description>
+		</method>
+	</methods>
+	<members>
+		<member name="control" type="Control" setter="set_control" getter="get_control">The root Control that displays the item.</member>
+	</members>
+	<constants>
+		<constant name="FLAG_BOUND" value="1" enum="Flag">The holder is bound to data.</constant>
+		<constant name="FLAG_UPDATE" value="2" enum="Flag">The holder's content needs updating.</constant>
+		<constant name="FLAG_INVALID" value="4" enum="Flag">The holder is invalid and must be rebound.</constant>
+		<constant name="FLAG_REMOVED" value="8" enum="Flag">The holder's data was removed.</constant>
+		<constant name="FLAG_NOT_RECYCLABLE" value="16" enum="Flag">The holder must not be recycled.</constant>
+		<constant name="FLAG_RETURNED_FROM_SCRAP" value="32" enum="Flag">The holder was returned from the scrap.</constant>
+		<constant name="FLAG_IGNORE" value="128" enum="Flag">Layout and animation should ignore this holder.</constant>
+		<constant name="FLAG_TMP_DETACHED" value="256" enum="Flag">The holder is temporarily detached.</constant>
+		<constant name="FLAG_ADAPTER_POSITION_UNKNOWN" value="512" enum="Flag">The holder's adapter position is unknown.</constant>
+		<constant name="FLAG_ADAPTER_FULLUPDATE" value="1024" enum="Flag">The holder requires a full rebind.</constant>
+		<constant name="FLAG_MOVED" value="2048" enum="Flag">The holder was moved.</constant>
+		<constant name="FLAG_APPEARED_IN_PRE_LAYOUT" value="4096" enum="Flag">The holder appeared in the pre-layout.</constant>
+		<constant name="FLAG_BOUNCED_FROM_HIDDEN_LIST" value="8192" enum="Flag">The holder was bounced from a hidden list.</constant>
+	</constants>
+</class>

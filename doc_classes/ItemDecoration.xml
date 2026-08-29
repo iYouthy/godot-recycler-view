@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ItemDecoration" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Draws decoration below items and adds per-item insets.</brief_description>
+	<description>ItemDecoration is the port of [i]RecyclerView.ItemDecoration[/i]. Subclass it to add
+spacing and drawn separators. Override [method _get_item_offsets] to reserve space around
+an item (e.g. a divider gap) and [method _on_draw] to draw below the item views.
+
+[b]Example[/b] — a horizontal divider:
+[codeblock]
+class Divider extends ItemDecoration:
+    var color := Color(1, 1, 1, 0.2)
+    var height := 2
+
+    func _get_item_offsets(position: int, parent: Control) -&gt; Vector4:
+        return Vector4(0, 0, 0, height)  # bottom inset
+
+    func _on_draw(parent: Control) -&gt; void:
+        parent.draw_line(Vector2.ZERO, Vector2(parent.size.x, 0), color, height)
+[/codeblock]</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_item_offsets" qualifiers="virtual">
+			<return type="Vector4" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="parent" type="Control" />
+			<description>Must override. Returns the (left, top, right, bottom) insets reserved around the item
+at [code]position[/code].</description>
+		</method>
+		<method name="_on_draw" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="parent" type="Control" />
+			<description>Must override. Called when the RecyclerView draws, before the item views, to draw separators etc. Use the [code]parent[/code] Control's draw API.</description>
+		</method>
+		<method name="get_item_offsets">
+			<return type="Vector4" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="parent" type="Control" />
+			<description>Returns the item's insets; calls [method _get_item_offsets], returning a zero Vector4 when not overridden.</description>
+		</method>
+		<method name="on_draw">
+			<return type="void" />
+			<param index="0" name="parent" type="Control" />
+			<description>Triggers the decoration draw; calls [method _on_draw].</description>
+		</method>
+	</methods>
+</class>

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="LayoutManager" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Abstract base for layout strategies (linear / grid / staggered).</brief_description>
+	<description>LayoutManager is the port of [i]RecyclerView.LayoutManager[/i]. It defines the layout
+strategy used to position items and to decide which positions are visible. You normally use
+one of its concrete subclasses ([b]LinearLayoutManager[/b], [b]GridLayoutManager[/b],
+[b]StaggeredGridLayoutManager[/b]) rather than subclassing this class in GDScript.
+
+[b]Note:[/b] [method get_content_size] and [method get_position_offset] are bound on this
+base class but overridden by the concrete managers internally; calling them from GDScript
+returns the base-class default (0). Use [method LinearLayoutManager.get_item_offset] or the
+managers' row/column queries when you need geometry from a script.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_content_size" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Returns the content size along the scroll axis. Base default is 0; the concrete managers compute it internally.</description>
+		</method>
+		<method name="get_item_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the adapter's item count (0 when no adapter is set).</description>
+		</method>
+		<method name="get_position_offset" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the item's starting scroll offset in content space. Base default is 0.</description>
+		</method>
+		<method name="get_recycler_view" qualifiers="const">
+			<return type="RecyclerView" />
+			<description>Returns the [b]RecyclerView[/b] this layout is attached to.</description>
+		</method>
+		<method name="get_reverse_layout" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether reverse layout is enabled.</description>
+		</method>
+		<method name="set_reverse_layout">
+			<return type="void" />
+			<param index="0" name="reverse" type="bool" />
+			<description>Enables reverse layout: items are laid out from the trailing end (bottom for a vertical
+list). Combined with an initial scroll to the max offset this gives a chat list where
+position 0 sits at the bottom.</description>
+		</method>
+	</methods>
+</class>

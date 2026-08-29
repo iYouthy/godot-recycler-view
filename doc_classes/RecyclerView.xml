@@ -1,0 +1,308 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="RecyclerView" inherits="Control" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>A virtualized, scrollable list that recycles item views.</brief_description>
+	<description>RecyclerView is the main entry point of the extension: a Control that lays out
+the items provided by an [b]Adapter[/b] through a [b]LayoutManager[/b], recycles the
+[b]ViewHolder[/b]s that scroll out of the viewport, and reuses them when new positions
+scroll in. Only the items that intersect the viewport are instantiated, so arbitrarily
+large lists render with a constant number of item Controls.
+
+[b]Typical setup[/b] in GDScript:
+[codeblock]
+var rv := RecyclerView.new()
+rv.set_item_size(40)                     # default item size along the scroll axis
+rv.set_adapter(my_adapter)                # an Adapter (or ListAdapter) subclass
+rv.set_layout(LinearLayoutManager.new())  # or GridLayoutManager / StaggeredGridLayoutManager
+add_child(rv)
+[/codeblock]
+
+Data changes are reported through the [code]notify_item_*[/code] methods, which queue
+incremental updates and apply them at the end of the frame. Scrolling is driven either by
+mouse/touch input handled internally or by the [code]scroll_*[/code] / [code]set_scroll_offset*[/code]
+methods. Optional features: item animations ([method set_item_animator]), drag &amp; swipe
+([method set_item_touch_helper]), snapping ([method set_snap_helper]) and a scroll bar
+([method set_scroll_bar]).
+
+Run the [b]recycler_demo[/b] scene ([code]res://recycler_demo.tscn[/code]) for a working
+example.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_item_decoration">
+			<return type="void" />
+			<param index="0" name="decor" type="ItemDecoration" />
+			<description>Adds an [b]ItemDecoration[/b] that draws below items and adds per-item insets (e.g. dividers).</description>
+		</method>
+		<method name="add_item_view">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Adds a holder's Control to the tree and registers it as a child view.</description>
+		</method>
+		<method name="add_on_scroll_listener">
+			<return type="void" />
+			<param index="0" name="listener" type="ScrollListener" />
+			<description>Registers a [b]ScrollListener[/b] that receives scroll step and state changes.</description>
+		</method>
+		<method name="clear_on_scroll_listeners">
+			<return type="void" />
+			<description>Removes all scroll listeners.</description>
+		</method>
+		<method name="find_child_holder_at">
+			<return type="ViewHolder" />
+			<param index="0" name="local_pos" type="Vector2" />
+			<description>Hit-test: returns the topmost holder whose layout slot contains the local position.</description>
+		</method>
+		<method name="free_items">
+			<return type="void" />
+			<description>Frees all item Controls (visible and recycled). Call in teardown to release the
+Control resources held by the RecyclerView.</description>
+		</method>
+		<method name="get_adapter_helper" qualifiers="const">
+			<return type="AdapterHelper" />
+			<description>Returns the internal [b]AdapterHelper[/b] that queues incremental update operations.</description>
+		</method>
+		<method name="get_child_holder_at" qualifiers="const">
+			<return type="ViewHolder" />
+			<param index="0" name="index" type="int" />
+			<description>Returns the ViewHolder at the given child index.</description>
+		</method>
+		<method name="get_child_holder_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the number of ViewHolders currently attached to the tree.</description>
+		</method>
+		<method name="get_decorated_item_rect" qualifiers="const">
+			<return type="Rect2" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the actual draw rect of the item at the given position after decoration insets.</description>
+		</method>
+		<method name="get_item_animator" qualifiers="const">
+			<return type="ItemAnimator" />
+			<description>Returns the current item animator.</description>
+		</method>
+		<method name="get_item_decoration_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the number of attached item decorations.</description>
+		</method>
+		<method name="get_item_height" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the size of the item at [code]position[/code] along the scroll axis, from
+[method Adapter._get_item_height] when overridden, otherwise the default [method get_item_size].</description>
+		</method>
+		<method name="get_item_insets" qualifiers="const">
+			<return type="Vector4" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the accumulated insets (left, top, right, bottom) applied to the item at the given position.</description>
+		</method>
+		<method name="get_item_touch_helper" qualifiers="const">
+			<return type="ItemTouchHelper" />
+			<description>Returns the current item touch helper.</description>
+		</method>
+		<method name="get_prefetch_enabled" qualifiers="const">
+			<return type="bool" />
+			<description>Returns whether prefetching is enabled.</description>
+		</method>
+		<method name="get_recycler" qualifiers="const">
+			<return type="Recycler" />
+			<description>Returns the internal [b]Recycler[/b] that holds cached and pooled ViewHolders.</description>
+		</method>
+		<method name="get_scroll_bar" qualifiers="const">
+			<return type="RecyclerViewScrollBar" />
+			<description>Returns the current scroll bar, or an invalid Ref when none is set.</description>
+		</method>
+		<method name="get_scroll_offset" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current vertical scroll offset.</description>
+		</method>
+		<method name="get_scroll_offset_horizontal" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current horizontal scroll offset.</description>
+		</method>
+		<method name="get_scroll_state" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current scroll state: one of [constant SCROLL_STATE_IDLE], [constant SCROLL_STATE_DRAGGING] or [constant SCROLL_STATE_SETTLING].</description>
+		</method>
+		<method name="get_snap_helper" qualifiers="const">
+			<return type="SnapHelper" />
+			<description>Returns the current snap helper.</description>
+		</method>
+		<method name="get_state" qualifiers="const">
+			<return type="State" />
+			<description>Returns the internal layout [b]State[/b] object used between layouts.</description>
+		</method>
+		<method name="get_view_for_position">
+			<return type="ViewHolder" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the [b]ViewHolder[/b] for a position, reusing one from the cache / pool or creating it. Used by LayoutManagers.</description>
+		</method>
+		<method name="get_viewport_size" qualifiers="const">
+			<return type="Vector2" />
+			<description>Returns the viewport (this Control's own) size.</description>
+		</method>
+		<method name="is_item_touch_occupied" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Returns whether the given holder is currently being dragged / swiped by the touch helper.</description>
+		</method>
+		<method name="layout_children">
+			<return type="void" />
+			<description>Runs a layout pass synchronously.</description>
+		</method>
+		<method name="notify_data_changed">
+			<return type="void" />
+			<description>Clears all queued updates and relayouts everything from scratch.</description>
+		</method>
+		<method name="notify_item_moved">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Notifies that an item moved from [code]from_position[/code] to [code]to_position[/code].
+Queued and applied at frame end.</description>
+		</method>
+		<method name="notify_item_range_changed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Notifies that [code]count[/code] items starting at [code]position[/code] changed content.
+The optional [code]payload[/code] is passed to [method Adapter._bind_item_with_payload]
+so only visible cells can be rebound locally. Queued and applied at frame end.</description>
+		</method>
+		<method name="notify_item_range_inserted">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Notifies that [code]count[/code] items were inserted at [code]position[/code].
+Positions at or after it are shifted. Queued and applied at frame end.</description>
+		</method>
+		<method name="notify_item_range_removed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Notifies that [code]count[/code] items were removed starting at [code]position[/code].
+Positions after the removed range shift down. Queued and applied at frame end.</description>
+		</method>
+		<method name="recycle_view">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="int" />
+			<description>Returns a [b]ViewHolder[/b] to the cache or pool. An animating holder is skipped.</description>
+		</method>
+		<method name="remove_item_decoration">
+			<return type="void" />
+			<param index="0" name="decor" type="ItemDecoration" />
+			<description>Removes a previously added [b]ItemDecoration[/b].</description>
+		</method>
+		<method name="remove_item_view">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<description>Removes a holder's Control from the tree and unregisters it.</description>
+		</method>
+		<method name="remove_on_scroll_listener">
+			<return type="void" />
+			<param index="0" name="listener" type="ScrollListener" />
+			<description>Unregisters a previously added [b]ScrollListener[/b].</description>
+		</method>
+		<method name="request_layout">
+			<return type="void" />
+			<description>Requests a layout; equivalent to a synchronous [method layout_children] in this port.</description>
+		</method>
+		<method name="scroll_horizontally">
+			<return type="int" />
+			<param index="0" name="delta" type="int" />
+			<description>Scrolls horizontally by [code]delta[/code] content pixels. Returns the amount actually
+scrolled and dispatches [method ScrollListener._on_scrolled].</description>
+		</method>
+		<method name="scroll_to_position">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<description>Instantly scrolls so that the given position is visible. With the default
+[b]LayoutManager[/b] orientation the item is aligned to the top of the viewport
+(normal layout) or the bottom (reverse layout).</description>
+		</method>
+		<method name="scroll_vertically">
+			<return type="int" />
+			<param index="0" name="delta" type="int" />
+			<description>Scrolls vertically by [code]delta[/code] content pixels. Returns the amount actually
+scrolled (0 when already at a boundary) and dispatches [method ScrollListener._on_scrolled].</description>
+		</method>
+		<method name="set_item_animator">
+			<return type="void" />
+			<param index="0" name="animator" type="ItemAnimator" />
+			<description>Sets the [b]ItemAnimator[/b] used to animate item add/remove/move/change (default: DefaultItemAnimator).</description>
+		</method>
+		<method name="set_item_touch_helper">
+			<return type="void" />
+			<param index="0" name="helper" type="ItemTouchHelper" />
+			<description>Sets the [b]ItemTouchHelper[/b] used for long-press drag &amp; swipe gestures.</description>
+		</method>
+		<method name="set_item_view_position">
+			<return type="void" />
+			<param index="0" name="holder" type="ViewHolder" />
+			<param index="1" name="position" type="Vector2" />
+			<param index="2" name="size" type="Vector2" />
+			<description>Positions and sizes a holder's Control, applying item decoration insets.</description>
+		</method>
+		<method name="set_prefetch_enabled">
+			<return type="void" />
+			<param index="0" name="enabled" type="bool" />
+			<description>Enables or disables prefetching (on by default). Prefetch pre-creates holders just ahead of the viewport to smooth scrolling.</description>
+		</method>
+		<method name="set_scroll_bar">
+			<return type="void" />
+			<param index="0" name="bar" type="RecyclerViewScrollBar" />
+			<description>Sets the scroll bar ([b]RecyclerViewScrollBar[/b]) and binds it as a child Control.
+Pass [code]null[/code] to remove it. The bar is pinned to the trailing edge and
+auto-selects its axis from the layout direction.</description>
+		</method>
+		<method name="set_scroll_offset">
+			<return type="void" />
+			<param index="0" name="offset" type="int" />
+			<description>Sets the vertical scroll offset (in content pixels), clamped to the scrollable range,
+and relayouts. 0 = start of content.</description>
+		</method>
+		<method name="set_scroll_offset_horizontal">
+			<return type="void" />
+			<param index="0" name="offset" type="int" />
+			<description>Sets the horizontal scroll offset (clamped) and relayouts.</description>
+		</method>
+		<method name="set_snap_helper">
+			<return type="void" />
+			<param index="0" name="helper" type="SnapHelper" />
+			<description>Sets the [b]SnapHelper[/b] that aligns the list to snapped items after fling / scroll stop.</description>
+		</method>
+		<method name="smooth_scroll_to">
+			<return type="void" />
+			<param index="0" name="target" type="int" />
+			<param index="1" name="duration" type="float" />
+			<description>Smoothly scrolls to [code]target[/code] offset over [code]duration[/code] seconds with a
+decelerating easing. Used internally by the SnapHelper to settle on a snapped item.</description>
+		</method>
+		<method name="smooth_scroll_to_position">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="duration" type="float" />
+			<description>Smoothly scrolls so that the given position is visible (same target as
+[method scroll_to_position], eased over [code]duration[/code] seconds). Useful to jump to
+the bottom of a chat list.</description>
+		</method>
+		<method name="stop_scroll">
+			<return type="void" />
+			<description>Stops any in-flight fling / inertial scroll and returns the state to [constant SCROLL_STATE_IDLE].</description>
+		</method>
+	</methods>
+	<members>
+		<member name="adapter" type="Adapter" setter="set_adapter" getter="get_adapter">The data adapter providing items.</member>
+		<member name="clip_contents" type="bool" setter="set_clip_contents" getter="is_clipping_contents" overrides="Control" default="true" />
+		<member name="item_size" type="int" setter="set_item_size" getter="get_item_size" default="64">Default item size along the scroll axis (used when the adapter does not override heights).</member>
+		<member name="layout" type="LayoutManager" setter="set_layout" getter="get_layout">The layout manager that positions items.</member>
+		<member name="scroll_bar_auto_hide" type="bool" setter="set_scroll_bar_auto_hide" getter="get_scroll_bar_auto_hide" default="true">Whether the scroll bar fades out when idle.</member>
+		<member name="scroll_bar_hide_delay" type="float" setter="set_scroll_bar_hide_delay" getter="get_scroll_bar_hide_delay" default="0.5">Seconds the scroll bar stays visible after the last activity.</member>
+		<member name="vertical_wheel_scrolls_horizontal" type="bool" setter="set_vertical_wheel_scrolls_horizontal" getter="get_vertical_wheel_scrolls_horizontal" default="true">Whether a vertical wheel scroll drives horizontal scrolling on horizontal layouts.</member>
+	</members>
+	<constants>
+		<constant name="SCROLL_STATE_IDLE" value="0" enum="ScrollState">The list is not scrolling.</constant>
+		<constant name="SCROLL_STATE_DRAGGING" value="1" enum="ScrollState">The list is being dragged by the user.</constant>
+		<constant name="SCROLL_STATE_SETTLING" value="2" enum="ScrollState">The list is settling after a fling or programmatic scroll.</constant>
+	</constants>
+</class>

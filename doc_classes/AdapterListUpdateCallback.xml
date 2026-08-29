@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="AdapterListUpdateCallback" inherits="ListUpdateCallback" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Forwards list-update events to an Adapter's notify calls.</brief_description>
+	<description>AdapterListUpdateCallback bridges the [b]ListUpdateCallback[/b] protocol to an
+[b]Adapter[/b]: [method set_adapter] picks the adapter and the [code]_on_*[/code] events
+become the matching [code]Adapter.notify_item_*[/code] calls. This is what
+[method ListAdapter.submit_list] uses internally to drive a RecyclerView.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_adapter" qualifiers="const">
+			<return type="Adapter" />
+			<description>Returns the target adapter.</description>
+		</method>
+		<method name="set_adapter">
+			<return type="void" />
+			<param index="0" name="adapter" type="Adapter" />
+			<description>Sets the [b]Adapter[/b] that receives the forwarded notify calls.</description>
+		</method>
+	</methods>
+</class>

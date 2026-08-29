@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="LinearSnapHelper" inherits="SnapHelper" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Snaps the item nearest the center of the viewport.</brief_description>
+	<description>LinearSnapHelper aligns the item closest to the viewport's center to the center on
+scroll stop / fling. It estimates how many items a fling will cross using the same spline
+physics as the RecyclerView and jumps straight to that position.</description>
+	<tutorials>
+	</tutorials>
+</class>

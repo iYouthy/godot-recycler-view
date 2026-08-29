@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="BatchingListUpdateCallback" inherits="ListUpdateCallback" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Coalesces adjacent update events into batches.</brief_description>
+	<description>BatchingListUpdateCallback wraps a [b]ListUpdateCallback[/b] and merges adjacent
+events (consecutive inserts / removes / changes) so the wrapped callback receives the
+fewest possible calls. Used internally when dispatching a diff.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="dispatch_last_event">
+			<return type="void" />
+			<description>Forwards the currently buffered event to the wrapped callback.</description>
+		</method>
+		<method name="get_last_event_count" qualifiers="const">
+			<return type="int" />
+			<description>Returns the count of the buffered event.</description>
+		</method>
+		<method name="get_last_event_position" qualifiers="const">
+			<return type="int" />
+			<description>Returns the position of the buffered event.</description>
+		</method>
+		<method name="get_last_event_type" qualifiers="const">
+			<return type="int" />
+			<description>Returns the type of the buffered event.</description>
+		</method>
+		<method name="on_changed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<param index="2" name="payload" type="Variant" />
+			<description>Feeds a change event into the batch.</description>
+		</method>
+		<method name="on_inserted">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Feeds an insert event into the batch.</description>
+		</method>
+		<method name="on_moved">
+			<return type="void" />
+			<param index="0" name="from_position" type="int" />
+			<param index="1" name="to_position" type="int" />
+			<description>Forwards a move event immediately (moves never batch).</description>
+		</method>
+		<method name="on_removed">
+			<return type="void" />
+			<param index="0" name="position" type="int" />
+			<param index="1" name="count" type="int" />
+			<description>Feeds a remove event into the batch.</description>
+		</method>
+	</methods>
+	<members>
+		<member name="wrapped" type="ListUpdateCallback" setter="set_wrapped" getter="get_wrapped">The underlying [b]ListUpdateCallback[/b] receiving the coalesced events.</member>
+	</members>
+</class>

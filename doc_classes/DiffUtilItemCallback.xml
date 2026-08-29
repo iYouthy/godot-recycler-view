@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DiffUtilItemCallback" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Compares individual list items for ListAdapter diffing.</brief_description>
+	<description>DiffUtilItemCallback is the port of [i]DiffUtil.ItemCallback[/i]: it compares two item
+objects to decide whether they represent the same data and whether their content changed.
+It is the diff callback used by [method ListAdapter.set_diff_callback] when submitting a
+new list.
+
+[b]Subclass[/b]:
+[codeblock]
+class DiffCb extends DiffUtilItemCallback:
+    func _are_items_the_same(old_item: Variant, new_item: Variant) -&gt; bool:
+        return old_item.id == new_item.id
+
+    func _are_contents_the_same(old_item: Variant, new_item: Variant) -&gt; bool:
+        return old_item.text == new_item.text
+[/codeblock]</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_are_contents_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="old_item" type="Variant" />
+			<param index="1" name="new_item" type="Variant" />
+			<description>Must override. Returns whether the two items have identical content; false dispatches a change update.</description>
+		</method>
+		<method name="_are_items_the_same" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="old_item" type="Variant" />
+			<param index="1" name="new_item" type="Variant" />
+			<description>Must override. Returns whether the two items represent the same data (used for move detection / stable identity).</description>
+		</method>
+		<method name="_get_change_payload" qualifiers="virtual">
+			<return type="Variant" />
+			<param index="0" name="old_item" type="Variant" />
+			<param index="1" name="new_item" type="Variant" />
+			<description>Optional. Returns a payload for a change update, passed to [method Adapter._bind_item_with_payload].</description>
+		</method>
+	</methods>
+</class>

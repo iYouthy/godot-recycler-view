@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="ScrollListener" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Receives scroll step deltas and scroll-state changes.</brief_description>
+	<description>ScrollListener is the port of [i]RecyclerView.OnScrollListener[/i]. Register an instance
+with [method RecyclerView.add_on_scroll_listener]; subclass it and override
+[method _on_scrolled] / [method _on_scroll_state_changed] to react to scrolling.
+
+[b]Example[/b]:
+[codeblock]
+class L extends ScrollListener:
+    func _on_scrolled(dx: int, dy: int) -&gt; void:
+        print("scrolled by ", dx, ", ", dy)
+
+    func _on_scroll_state_changed(state: int) -&gt; void:
+        if state == RecyclerView.SCROLL_STATE_IDLE:
+            print("stopped")
+[/codeblock]
+
+In a reverse layout the reported [code]dy[/code] follows the content: positive means the
+content moved down, matching the Android semantics.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_scroll_state_changed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="state" type="int" />
+			<description>Called when the scroll state changes to [constant RecyclerView.SCROLL_STATE_IDLE], [constant RecyclerView.SCROLL_STATE_DRAGGING] or [constant RecyclerView.SCROLL_STATE_SETTLING].</description>
+		</method>
+		<method name="_on_scrolled" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="dx" type="int" />
+			<param index="1" name="dy" type="int" />
+			<description>Called on every scroll step with the horizontal / vertical delta since the last call.</description>
+		</method>
+		<method name="on_scroll_state_changed">
+			<return type="void" />
+			<param index="0" name="state" type="int" />
+			<description>C++ forwarding shell for [method _on_scroll_state_changed]; scripts override the underscore version.</description>
+		</method>
+		<method name="on_scrolled">
+			<return type="void" />
+			<param index="0" name="dx" type="int" />
+			<param index="1" name="dy" type="int" />
+			<description>C++ forwarding shell for [method _on_scrolled]; scripts override the underscore version.</description>
+		</method>
+	</methods>
+</class>

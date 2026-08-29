@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="DiffResult" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Holds a computed diff and can dispatch it as update ops.</brief_description>
+	<description>DiffResult is produced by [method DiffUtil.calculate_diff]. It maps old/new positions and
+dispatches the minimal update script (insert / remove / move / change) to a
+[b]ListUpdateCallback[/b] via [method dispatch_updates_to].</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="convert_new_position_to_old" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="new_list_position" type="int" />
+			<description>Maps a new-list index to the old-list index (-1 when the item is new).</description>
+		</method>
+		<method name="convert_old_position_to_new" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="old_list_position" type="int" />
+			<description>Maps an old-list index to the new-list index (-1 when the item no longer exists).</description>
+		</method>
+		<method name="dispatch_updates_to" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="update_callback" type="ListUpdateCallback" />
+			<description>Dispatches the diff as incremental updates to the given [b]ListUpdateCallback[/b] (batching adjacent events).</description>
+		</method>
+	</methods>
+</class>

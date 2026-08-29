@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='utf-8'?>
+<class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="SortedList" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>Keeps an Array sorted and reports the minimal updates.</brief_description>
+	<description>SortedList is the port of [i]androidx.recyclerview.util.SortedList[/i]: it maintains a
+sorted array, inserts / removes items in the right place, and emits the minimal
+[b]SortedListCallback[/b] events so a RecyclerView only animates what changed. It uses a
+[b]SortedListCallback[/b] to compare and to decide whether content changed.</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add">
+			<return type="int" />
+			<param index="0" name="item" type="Variant" />
+			<description>Inserts an item into its sorted position, emitting the minimal insert / change events.</description>
+		</method>
+		<method name="add_all">
+			<return type="void" />
+			<param index="0" name="items" type="Array" />
+			<description>Batches-inserts every item of an array into sorted position.</description>
+		</method>
+		<method name="begin_batched_updates">
+			<return type="void" />
+			<description>Starts a batch; events are coalesced until [method end_batched_updates].</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>Removes all items, emitting remove events.</description>
+		</method>
+		<method name="end_batched_updates">
+			<return type="void" />
+			<description>Ends a batch and dispatches the coalesced events.</description>
+		</method>
+		<method name="get" qualifiers="const">
+			<return type="Variant" />
+			<param index="0" name="index" type="int" />
+			<description>Returns the item at [code]index[/code].</description>
+		</method>
+		<method name="index_of" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="item" type="Variant" />
+			<description>Returns the index of [code]item[/code], or -1 when absent.</description>
+		</method>
+		<method name="recalculate_position_of_item_at">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>Re-sorts the item at [code]index[/code] and emits the minimal events.</description>
+		</method>
+		<method name="remove">
+			<return type="bool" />
+			<param index="0" name="item" type="Variant" />
+			<description>Removes [code]item[/code] if present.</description>
+		</method>
+		<method name="remove_item_at">
+			<return type="Variant" />
+			<param index="0" name="index" type="int" />
+			<description>Removes the item at [code]index[/code].</description>
+		</method>
+		<method name="replace_all">
+			<return type="void" />
+			<param index="0" name="items" type="Array" />
+			<description>Replaces the whole list, diffing old vs new.</description>
+		</method>
+		<method name="size" qualifiers="const">
+			<return type="int" />
+			<description>Returns the current item count.</description>
+		</method>
+		<method name="update_item_at">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="item" type="Variant" />
+			<description>Updates the item at [code]index[/code] and emits change events.</description>
+		</method>
+	</methods>
+	<members>
+		<member name="callback" type="SortedListCallback" setter="set_callback" getter="get_callback">The [b]SortedListCallback[/b] used to compare and diff items.</member>
+	</members>
+</class>
