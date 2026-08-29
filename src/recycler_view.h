@@ -5,6 +5,7 @@
 #include "fling_scroller.h"
 #include "item_animator.h"
 #include "item_decoration.h"
+#include "item_touch_helper.h"
 #include "layout_manager.h"
 #include "recycler.h"
 #include "scroll_listener.h"
@@ -97,6 +98,21 @@ public:
 	// Item animations after incremental updates (insert/remove/move/change).
 	void set_item_animator(const Ref<ItemAnimator> &p_animator);
 	Ref<ItemAnimator> get_item_animator() const { return m_item_animator; }
+
+	// Item touch helper (long-press drag-reorder / swipe-dismiss). Set it via
+	// ItemTouchHelper::attach_to_recycler_view().
+	void set_item_touch_helper(const Ref<ItemTouchHelper> &p_helper);
+	Ref<ItemTouchHelper> get_item_touch_helper() const { return m_item_touch_helper; }
+	// Topmost child holder whose layout slot (get_layout_position) contains the
+	// RV-local point.
+	Ref<ViewHolder> find_child_holder_at(const Vector2 &p_local_pos);
+	// True while the touch helper is dragging/swiping or settling the holder:
+	// the layout and the ItemAnimator must leave it alone.
+	bool is_item_touch_occupied(const Ref<ViewHolder> &p_holder) const;
+	// True once a drag has actually started scrolling (past the slop).
+	bool is_scroll_drag_active() const { return m_dragging && m_drag_scrolled; }
+	// True while a deferred layout (notify_*) is still pending this frame.
+	bool is_layout_requested() const { return m_layout_deferred; }
 	// The animator re-queries a holder's layout target here each frame so a
 	// move slides to the live layout position (it follows scrolls).
 	Vector2 get_layout_position(const Ref<ViewHolder> &p_holder);
@@ -126,6 +142,10 @@ public:
 	void begin_drag(const Ref<InputEventMouseMotion> &p_mm);
 	void continue_drag(const Ref<InputEventMouseMotion> &p_mm);
 	void end_drag();
+	// Ends a drag without flinging: used when a release outside the window is
+	// only detected later by a motion with the left button up (the velocity
+	// would be stale), and by the ItemTouchHelper when it steals a gesture.
+	void cancel_drag();
 
 	// Item decorations (dividers, spacing).
 	void add_item_decoration(const Ref<ItemDecoration> &p_decor);
@@ -159,10 +179,6 @@ private:
 	void set_scroll_state(int p_state);
 	void dispatch_scrolled(int p_dx, int p_dy);
 	void finish_drag();
-	// Ends a drag without flinging: used when a release outside the window is
-	// only detected later by a motion with the left button up (the velocity
-	// would be stale). Mirrors Android's cancelled-gesture behavior.
-	void cancel_drag();
 	void stop_fling();
 
 	// Item animation: two-phase layout. Captures each visible holder's position
@@ -215,6 +231,7 @@ private:
 	Ref<AdapterHelper> m_adapter_helper;
 	Vector<Ref<ItemDecoration>> m_decorations;
 	Ref<ItemAnimator> m_item_animator;
+	Ref<ItemTouchHelper> m_item_touch_helper;
 	bool m_layout_deferred = false;
 	// Set when a layout request arrives while a layout is already running (e.g.
 	// a RESIZED notification for the size being finalized). The running layout

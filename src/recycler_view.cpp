@@ -96,6 +96,10 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_decorated_item_rect", "position"), &RecyclerView::get_decorated_item_rect);
 	ClassDB::bind_method(D_METHOD("set_item_animator", "animator"), &RecyclerView::set_item_animator);
 	ClassDB::bind_method(D_METHOD("get_item_animator"), &RecyclerView::get_item_animator);
+	ClassDB::bind_method(D_METHOD("set_item_touch_helper", "helper"), &RecyclerView::set_item_touch_helper);
+	ClassDB::bind_method(D_METHOD("get_item_touch_helper"), &RecyclerView::get_item_touch_helper);
+	ClassDB::bind_method(D_METHOD("find_child_holder_at", "local_pos"), &RecyclerView::find_child_holder_at);
+	ClassDB::bind_method(D_METHOD("is_item_touch_occupied", "holder"), &RecyclerView::is_item_touch_occupied);
 
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_IDLE", SCROLL_STATE_IDLE);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
@@ -122,6 +126,9 @@ RecyclerView::~RecyclerView() {
 	if (m_item_animator.is_valid()) {
 		m_item_animator->clear();
 	}
+	if (m_item_touch_helper.is_valid()) {
+		m_item_touch_helper->on_recycler_view_destroyed();
+	}
 	detach_from_adapter();
 	// Cached/scrap/pool views are detached from this RV (removed from the tree),
 	// so the Node teardown never deletes them. Free them here or nested RVs that
@@ -144,6 +151,20 @@ void RecyclerView::_notification(int p_what) {
 void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
 	Ref<InputEventMouseButton> mb = p_event;
 	if (mb.is_valid()) {
+		// The touch helper owns an active gesture (long-press drag / swipe):
+		// give it first crack so it can consume press/release and keep the RV
+		// from scrolling or flinging while it is in control.
+		if (m_item_touch_helper.is_valid() && mb->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT) {
+			if (mb->is_pressed()) {
+				if (m_item_touch_helper->on_press(mb, this)) {
+					accept_event();
+					return;
+				}
+			} else if (m_item_touch_helper->on_release(mb, this)) {
+				accept_event();
+				return;
+			}
+		}
 		// Route the drag release to the RV that grabbed the gesture, so it ends
 		// cleanly even when the mouse left the child's bounds.
 		if (mb->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT
@@ -194,6 +215,12 @@ void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
 
 	Ref<InputEventMouseMotion> mm = p_event;
 	if (mm.is_valid()) {
+		// The touch helper consumes motion while it owns a gesture (drag/swipe),
+		// so the RV never starts scrolling underneath it.
+		if (m_item_touch_helper.is_valid() && m_item_touch_helper->on_motion(mm, this)) {
+			accept_event();
+			return;
+		}
 		// Route the drag motion to the RV that grabbed it (this RV's grabber,
 		// or any ancestor's), converting its position into the receiver's space.
 		if (forward_unowned_drag_event(p_event)) {
@@ -269,6 +296,11 @@ void RecyclerView::set_vertical_wheel_scrolls_horizontal(bool p_enabled) {
 
 void RecyclerView::_process(double p_delta) {
 	m_elapsed_ms += p_delta * 1000.0;
+	if (m_item_touch_helper.is_valid()) {
+		// Drives the long-press timer, drag edge auto-scroll and the recover
+		// animations. Must run even when nothing else is animating.
+		m_item_touch_helper->step(p_delta);
+	}
 	if (m_item_animator.is_valid() && m_item_animator->is_running()) {
 		m_item_animator->animate_step(p_delta);
 	}
@@ -660,6 +692,34 @@ void RecyclerView::set_item_animator(const Ref<ItemAnimator> &p_animator) {
 	}
 }
 
+void RecyclerView::set_item_touch_helper(const Ref<ItemTouchHelper> &p_helper) {
+	m_item_touch_helper = p_helper;
+}
+
+Ref<ViewHolder> RecyclerView::find_child_holder_at(const Vector2 &p_local_pos) {
+	// Topmost first (children are in tree order).
+	for (int i = m_children.size() - 1; i >= 0; i--) {
+		const Ref<ViewHolder> &holder = m_children[i];
+		Control *control = holder->get_control();
+		if (control == nullptr) {
+			continue;
+		}
+		// Hit-test against the LAYOUT slot (get_layout_position), not the control's
+		// live position: during an ItemAnimator move the control is mid-flight
+		// between slots, and a press on its slot would otherwise miss it (the
+		// touch helper then never starts a swipe/drag on it).
+		const Vector2 slot = get_layout_position(holder);
+		if (Rect2(slot, control->get_size()).has_point(p_local_pos)) {
+			return holder;
+		}
+	}
+	return Ref<ViewHolder>();
+}
+
+bool RecyclerView::is_item_touch_occupied(const Ref<ViewHolder> &p_holder) const {
+	return m_item_touch_helper.is_valid() && m_item_touch_helper->is_occupied(p_holder);
+}
+
 Vector2 RecyclerView::get_layout_position(const Ref<ViewHolder> &p_holder) {
 	if (m_layout.is_null() || p_holder.is_null()) {
 		return Vector2();
@@ -710,6 +770,11 @@ bool RecyclerView::in_pre_positions(const Ref<ViewHolder> &p_holder) const {
 void RecyclerView::dispatch_animations() {
 	for (int i = 0; i < m_pre_positions.size(); i++) {
 		PrePosition &pre = m_pre_positions.write[i];
+		if (is_item_touch_occupied(pre.holder)) {
+			// The touch helper drives this holder's position itself (drag/swipe/
+			// settle); an ItemAnimator move would fight it.
+			continue;
+		}
 		if (m_removed_holders.has(pre.holder)) {
 			// Data removed this cycle: fade the kept control out, recycle after.
 			m_item_animator->animate_remove(pre.holder, Rect2(pre.position, Vector2()), Rect2());
@@ -730,6 +795,9 @@ void RecyclerView::dispatch_animations() {
 	// New holders this cycle: fade in.
 	for (int i = 0; i < m_children.size(); i++) {
 		Ref<ViewHolder> holder = m_children[i];
+		if (is_item_touch_occupied(holder)) {
+			continue;
+		}
 		if (!in_pre_positions(holder)) {
 			Vector2 position;
 			if (holder->get_control() != nullptr) {
@@ -1091,6 +1159,11 @@ void RecyclerView::layout_children() {
 	} while (m_layout_requested_again);
 	m_layout_in_progress = false;
 	prefetch_adjacent();
+	if (m_item_touch_helper.is_valid()) {
+		// A swap relayout moved the dragged holder to its new slot; re-pin it to
+		// the finger so it never tears visually (see ItemTouchHelper).
+		m_item_touch_helper->on_after_layout(this);
+	}
 }
 
 void RecyclerView::set_prefetch_enabled(bool p_enabled) {

@@ -116,11 +116,16 @@ void LinearLayoutManager::on_layout_children(RecyclerView *p_recycler_view, Stat
 	const int first_visible = first_visible_position(scroll_offset, item_count);
 	const int last_visible = last_visible_position(scroll_offset + viewport_size, item_count);
 
-	// Recycle holders that scrolled out of the visible range.
+	// Recycle holders that scrolled out of the visible range. A holder the
+	// touch helper is dragging/swiping/settling stays put (its data position
+	// may be out of range even though it is pinned under the finger).
 	for (int i = p_recycler_view->get_child_holder_count() - 1; i >= 0; i--) {
 		Ref<ViewHolder> holder = p_recycler_view->get_child_holder_at(i);
 		const int pos = holder->get_position();
 		if (pos < first_visible || pos >= last_visible) {
+			if (p_recycler_view->is_item_touch_occupied(holder)) {
+				continue;
+			}
 			p_recycler_view->remove_item_view(holder);
 			p_recycler_view->recycle_view(holder, pos);
 		}

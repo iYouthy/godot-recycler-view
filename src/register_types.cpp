@@ -14,6 +14,8 @@
 #include "grid_layout_manager.h"
 #include "item_animator.h"
 #include "item_decoration.h"
+#include "item_touch_helper.h"
+#include "item_touch_helper_callback.h"
 #include "layout_manager.h"
 #include "linear_layout_manager.h"
 #include "list_adapter.h"
@@ -63,6 +65,9 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	// Not abstract: GDScript subclasses extend ScrollListener directly, and a
 	// script cannot inherit from a class registered as abstract.
 	GDREGISTER_CLASS(ScrollListener);
+	GDREGISTER_CLASS(ItemTouchHelper);
+	// Not abstract: GDScript subclasses extend ItemTouchHelperCallback directly.
+	GDREGISTER_CLASS(ItemTouchHelperCallback);
 	GDREGISTER_CLASS(RecyclerView);
 }
 
