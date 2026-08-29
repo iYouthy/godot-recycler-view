@@ -12,8 +12,8 @@ class ScrollListener : public RefCounted {
 	GDCLASS(ScrollListener, RefCounted)
 
 public:
-	void on_scroll_state_changed(int p_state);
-	void on_scrolled(int p_dx, int p_dy);
+	virtual void on_scroll_state_changed(int p_state);
+	virtual void on_scrolled(int p_dx, int p_dy);
 
 protected:
 	static void _bind_methods();

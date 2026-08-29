@@ -101,6 +101,12 @@ void FlingScroller::stop() {
 	m_finished = true;
 }
 
+int FlingScroller::predict_end_distance(float p_velocity) {
+	FlingScroller tmp;
+	const double total = tmp.get_spline_fling_distance(p_velocity);
+	return (int)(total * (p_velocity > 0.0f ? 1.0 : -1.0));
+}
+
 double FlingScroller::get_spline_deceleration(float p_velocity) const {
 	return std::log(INFLEXION * std::fabs(p_velocity) / (FLING_FRICTION * PHYSICAL_COEFF));
 }

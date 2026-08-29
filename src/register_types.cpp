@@ -23,6 +23,7 @@
 #include "recycler.h"
 #include "recycler_view.h"
 #include "scroll_listener.h"
+#include "snap_helper.h"
 #include "sorted_list_gd.h"
 #include "span_size_lookup.h"
 #include "state.h"
@@ -68,6 +69,10 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(ItemTouchHelper);
 	// Not abstract: GDScript subclasses extend ItemTouchHelperCallback directly.
 	GDREGISTER_CLASS(ItemTouchHelperCallback);
+	// Snap helpers are used directly (LinearSnapHelper / PagerSnapHelper).
+	GDREGISTER_CLASS(SnapHelper);
+	GDREGISTER_CLASS(LinearSnapHelper);
+	GDREGISTER_CLASS(PagerSnapHelper);
 	GDREGISTER_CLASS(RecyclerView);
 }
 

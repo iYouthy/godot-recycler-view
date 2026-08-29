@@ -9,6 +9,7 @@
 #include "layout_manager.h"
 #include "recycler.h"
 #include "scroll_listener.h"
+#include "snap_helper.h"
 #include "state.h"
 #include "velocity_tracker.h"
 #include "view_holder.h"
@@ -85,6 +86,14 @@ public:
 	int scroll_horizontally(int p_delta);
 	void scroll_along_axis(int p_delta);
 	Vector2 get_viewport_size() const;
+	// Smoothly scrolls the layout's primary axis to the given offset over
+	// p_duration seconds with a decelerating ease (used by SnapHelper to settle
+	// on a snapped item/page).
+	void smooth_scroll_to(int p_target, double p_duration);
+	// Snap helper (LinearSnapHelper center-snap / PagerSnapHelper page-snap).
+	// Set it via SnapHelper::attach_to_recycler_view().
+	void set_snap_helper(const Ref<SnapHelper> &p_helper);
+	Ref<SnapHelper> get_snap_helper() const { return m_snap_helper; }
 
 	// Scroll state machine (SCROLL_STATE_IDLE/DRAGGING/SETTLING) and the
 	// listener callbacks, mirroring RecyclerView.OnScrollListener.
@@ -180,6 +189,9 @@ private:
 	void dispatch_scrolled(int p_dx, int p_dy);
 	void finish_drag();
 	void stop_fling();
+	// Drives the smooth_scroll_to settle animation (decelerate ease on the
+	// primary axis). Takes precedence over the fling while active.
+	void advance_settle(double p_delta);
 
 	// Item animation: two-phase layout. Captures each visible holder's position
 	// before pending updates are consumed, then dispatches move/add/remove/
@@ -232,6 +244,7 @@ private:
 	Vector<Ref<ItemDecoration>> m_decorations;
 	Ref<ItemAnimator> m_item_animator;
 	Ref<ItemTouchHelper> m_item_touch_helper;
+	Ref<SnapHelper> m_snap_helper;
 	bool m_layout_deferred = false;
 	// Set when a layout request arrives while a layout is already running (e.g.
 	// a RESIZED notification for the size being finalized). The running layout
@@ -259,6 +272,12 @@ private:
 	VelocityTracker m_velocity_tracker_h;
 	FlingScroller m_fling_v;
 	FlingScroller m_fling_h;
+	// smooth_scroll_to settle animation state.
+	bool m_settle_active = false;
+	int m_settle_from = 0;
+	int m_settle_to = 0;
+	double m_settle_elapsed = 0.0;
+	double m_settle_duration = 0.0;
 	// Monotonic clock (ms) accumulated in _process, used to stamp drag samples.
 	double m_elapsed_ms = 0.0;
 	static constexpr float MIN_FLING_VELOCITY = 50.0f;

@@ -29,6 +29,11 @@ public:
 	// relay uses this to detect momentum that spills into an ancestor.
 	bool was_clamped() const { return m_was_clamped; }
 
+	// Signed inertial scroll distance the spline would travel for the given
+	// velocity (before boundary clamping). SnapHelper uses this to estimate how
+	// many items a fling crosses, matching the RV's own fling physics.
+	static int predict_end_distance(float p_velocity);
+
 	// Lazily built 101-entry distance/time table (index 0..100). Public for the
 	// doctests to validate its shape (monotonic, anchored at 0 and 1).
 	static const float *spline_position();

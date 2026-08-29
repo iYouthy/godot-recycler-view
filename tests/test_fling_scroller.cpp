@@ -156,3 +156,16 @@ TEST_CASE("was_clamped reflects boundary spills") {
 	inside.fling(100, 1500.0f, 0, 1000000);
 	CHECK(!inside.was_clamped());
 }
+
+TEST_CASE("predict_end_distance matches the unclamped spline distance") {
+	// A fling inside the bounds settles exactly at start + predict_end_distance.
+	FlingScroller fling;
+	fling.fling(0, 3000.0f, 0, 1000000);
+	CHECK(fling.get_final_position() == FlingScroller::predict_end_distance(3000.0f));
+	// Zero velocity travels nothing.
+	CHECK(FlingScroller::predict_end_distance(0.0f) == 0);
+	// Direction is symmetric.
+	CHECK(FlingScroller::predict_end_distance(2000.0f) == -FlingScroller::predict_end_distance(-2000.0f));
+	// Positive velocity scrolls forward (later positions).
+	CHECK(FlingScroller::predict_end_distance(2000.0f) > 0);
+}

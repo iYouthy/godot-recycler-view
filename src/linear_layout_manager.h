@@ -50,6 +50,7 @@ public:
 
 	// Start coordinate of the item at the given position (offsets table).
 	int get_item_offset(int p_position) const;
+	int get_position_offset(int p_position) const override { return get_item_offset(p_position); }
 	virtual int get_cached_item_count() const { return m_offsets.size() - 1; }
 	Rect2 get_item_rect(RecyclerView *p_recycler_view, int p_position) const override;
 	void collect_adjacent_prefetch_positions(int p_dy, RecyclerView *p_recycler_view, Array &r_positions) const override;

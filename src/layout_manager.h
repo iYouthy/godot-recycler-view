@@ -42,6 +42,11 @@ public:
 	// Used by ItemDecorations to draw dividers/spacing.
 	virtual Rect2 get_item_rect(RecyclerView *p_recycler_view, int p_position) const { return Rect2(); }
 
+	// The scroll offset at which the item at the position starts along the scroll
+	// axis (content space). SnapHelper settles a position by scrolling to this
+	// offset (plus a centering adjustment).
+	virtual int get_position_offset(int p_position) const { return 0; }
+
 	// Collects positions adjacent to the viewport in the given scroll direction
 	// (p_dy > 0 = scrolling down/right). The RecyclerView pre-creates these into
 	// the recycled pool so scrolling there does not instantiate new views.

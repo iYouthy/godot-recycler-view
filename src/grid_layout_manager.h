@@ -53,6 +53,7 @@ public:
 	int get_item_column(int p_position) const;
 	int get_row_offset(int p_row) const;
 	int get_row_height(int p_row) const;
+	int get_position_offset(int p_position) const override { return get_row_offset(get_item_row(p_position)); }
 	int get_row_count() const { return m_row_count; }
 	int get_cached_item_count() const override { return m_cached_item_count; }
 	Rect2 get_item_rect(RecyclerView *p_recycler_view, int p_position) const override;

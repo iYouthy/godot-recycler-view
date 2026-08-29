@@ -100,6 +100,9 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_item_touch_helper"), &RecyclerView::get_item_touch_helper);
 	ClassDB::bind_method(D_METHOD("find_child_holder_at", "local_pos"), &RecyclerView::find_child_holder_at);
 	ClassDB::bind_method(D_METHOD("is_item_touch_occupied", "holder"), &RecyclerView::is_item_touch_occupied);
+	ClassDB::bind_method(D_METHOD("smooth_scroll_to", "target", "duration"), &RecyclerView::smooth_scroll_to);
+	ClassDB::bind_method(D_METHOD("set_snap_helper", "helper"), &RecyclerView::set_snap_helper);
+	ClassDB::bind_method(D_METHOD("get_snap_helper"), &RecyclerView::get_snap_helper);
 
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_IDLE", SCROLL_STATE_IDLE);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
@@ -128,6 +131,9 @@ RecyclerView::~RecyclerView() {
 	}
 	if (m_item_touch_helper.is_valid()) {
 		m_item_touch_helper->on_recycler_view_destroyed();
+	}
+	if (m_snap_helper.is_valid()) {
+		m_snap_helper->on_recycler_view_destroyed();
 	}
 	detach_from_adapter();
 	// Cached/scrap/pool views are detached from this RV (removed from the tree),
@@ -307,6 +313,10 @@ void RecyclerView::_process(double p_delta) {
 	if (m_scroll_state != SCROLL_STATE_SETTLING) {
 		return;
 	}
+	if (m_settle_active) {
+		advance_settle(p_delta);
+		return;
+	}
 	const double delta_ms = p_delta * 1000.0;
 	if (m_layout.is_valid() && m_layout->can_scroll_horizontally()) {
 		if (!m_fling_h.update(delta_ms)) {
@@ -362,6 +372,13 @@ void RecyclerView::stop_scroll() {
 }
 
 bool RecyclerView::try_start_fling(float p_velocity) {
+	// A snap helper may take over the fling (settle on a snapped item/page);
+	// then the RV never runs its own inertial scroll. The helper receives the
+	// effective fling velocity (the sign the fling would scroll with), matching
+	// the -p_velocity negation inside start_nested_fling.
+	if (m_snap_helper.is_valid() && m_snap_helper->on_fling(-p_velocity)) {
+		return true;
+	}
 	if (m_layout.is_null()) {
 		return false;
 	}
@@ -694,6 +711,49 @@ void RecyclerView::set_item_animator(const Ref<ItemAnimator> &p_animator) {
 
 void RecyclerView::set_item_touch_helper(const Ref<ItemTouchHelper> &p_helper) {
 	m_item_touch_helper = p_helper;
+}
+
+void RecyclerView::set_snap_helper(const Ref<SnapHelper> &p_helper) {
+	m_snap_helper = p_helper;
+}
+
+void RecyclerView::smooth_scroll_to(int p_target, double p_duration) {
+	stop_fling();
+	const bool h = m_layout.is_valid() && m_layout->can_scroll_horizontally();
+	m_settle_from = h ? m_scroll_offset_h : m_scroll_offset;
+	m_settle_to = p_target;
+	m_settle_elapsed = 0.0;
+	m_settle_duration = p_duration;
+	m_settle_active = true;
+	set_scroll_state(SCROLL_STATE_SETTLING);
+}
+
+void RecyclerView::advance_settle(double p_delta) {
+	const bool h = m_layout.is_valid() && m_layout->can_scroll_horizontally();
+	m_settle_elapsed += p_delta;
+	const double t = m_settle_duration > 0.0 ? m_settle_elapsed / m_settle_duration : 1.0;
+	int target;
+	if (t >= 1.0) {
+		target = m_settle_to;
+		m_settle_active = false;
+	} else {
+		// Decelerate ease (matches Android's smooth-scroll-to-position feel).
+		const double e = 1.0 - (1.0 - t) * (1.0 - t);
+		target = (int)(m_settle_from + (m_settle_to - m_settle_from) * e);
+	}
+	const int before = h ? m_scroll_offset_h : m_scroll_offset;
+	if (h) {
+		set_scroll_offset_horizontal(target);
+	} else {
+		set_scroll_offset(target);
+	}
+	const int actual = (h ? m_scroll_offset_h : m_scroll_offset) - before;
+	if (actual != 0) {
+		dispatch_scrolled(h ? actual : 0, h ? 0 : actual);
+	}
+	if (!m_settle_active) {
+		set_scroll_state(SCROLL_STATE_IDLE);
+	}
 }
 
 Ref<ViewHolder> RecyclerView::find_child_holder_at(const Vector2 &p_local_pos) {
