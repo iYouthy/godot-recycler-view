@@ -139,10 +139,16 @@ int StaggeredGridLayoutManager::last_visible_position(int p_scroll_end, int p_it
 void StaggeredGridLayoutManager::position_holder(RecyclerView *p_recycler_view, const Ref<ViewHolder> &p_holder, int p_position, int p_scroll_offset) const {
 	const int col = m_column_of_position[p_position];
 	const int top = m_col_top_of_position[p_position];
-	const int main_offset = top - p_scroll_offset;
+	int main_offset = top - p_scroll_offset;
+	const int main_length = p_recycler_view->get_item_height(p_position);
+	if (is_reverse_layout()) {
+		const int viewport_main = m_orientation == VERTICAL
+				? (int)p_recycler_view->get_viewport_size().y
+				: (int)p_recycler_view->get_viewport_size().x;
+		main_offset = viewport_main - (top + main_length) + p_scroll_offset;
+	}
 	const int cross_start = m_cell_borders[col];
 	const int cross_size = m_cell_borders[col + 1] - m_cell_borders[col];
-	const int main_length = p_recycler_view->get_item_height(p_position);
 	if (m_orientation == VERTICAL) {
 		p_recycler_view->set_item_view_position(p_holder,
 				Vector2((float)cross_start, (float)main_offset),
@@ -181,10 +187,16 @@ Rect2 StaggeredGridLayoutManager::get_item_rect(RecyclerView *p_recycler_view, i
 			: p_recycler_view->get_scroll_offset_horizontal();
 	const int col = m_column_of_position[p_position];
 	const int top = m_col_top_of_position[p_position];
-	const int main_offset = top - scroll;
+	int main_offset = top - scroll;
+	const int main_length = p_recycler_view->get_item_height(p_position);
+	if (is_reverse_layout()) {
+		const int viewport_main = m_orientation == VERTICAL
+				? (int)p_recycler_view->get_viewport_size().y
+				: (int)p_recycler_view->get_viewport_size().x;
+		main_offset = viewport_main - (top + main_length) + scroll;
+	}
 	const int cross_start = m_cell_borders[col];
 	const int cross_size = m_cell_borders[col + 1] - m_cell_borders[col];
-	const int main_length = p_recycler_view->get_item_height(p_position);
 	if (m_orientation == VERTICAL) {
 		return Rect2((float)cross_start, (float)main_offset, (float)cross_size, (float)main_length);
 	}

@@ -113,10 +113,16 @@ void GridLayoutManager::position_holder(RecyclerView *p_recycler_view, const Ref
 	const int row = m_row_of_position[p_position];
 	const int col = m_column_of_position[p_position];
 	const int span = m_span_of_position[p_position];
-	const int main_offset = m_row_offset[row] - p_scroll_offset;
+	int main_offset = m_row_offset[row] - p_scroll_offset;
+	const int main_length = m_row_height[row];
+	if (is_reverse_layout()) {
+		const int viewport_main = m_orientation == VERTICAL
+				? (int)p_recycler_view->get_viewport_size().y
+				: (int)p_recycler_view->get_viewport_size().x;
+		main_offset = viewport_main - (m_row_offset[row] + main_length) + p_scroll_offset;
+	}
 	const int cross_start = m_cell_borders[col];
 	const int cross_size = m_cell_borders[col + span] - m_cell_borders[col];
-	const int main_length = m_row_height[row];
 	if (m_orientation == VERTICAL) {
 		p_recycler_view->set_item_view_position(p_holder,
 				Vector2((float)cross_start, (float)main_offset),
@@ -166,10 +172,16 @@ Rect2 GridLayoutManager::get_item_rect(RecyclerView *p_recycler_view, int p_posi
 	const int row = m_row_of_position[p_position];
 	const int col = m_column_of_position[p_position];
 	const int span = m_span_of_position[p_position];
-	const int main_offset = m_row_offset[row] - scroll;
+	int main_offset = m_row_offset[row] - scroll;
+	const int main_length = m_row_height[row];
+	if (is_reverse_layout()) {
+		const int viewport_main = m_orientation == VERTICAL
+				? (int)p_recycler_view->get_viewport_size().y
+				: (int)p_recycler_view->get_viewport_size().x;
+		main_offset = viewport_main - (m_row_offset[row] + main_length) + scroll;
+	}
 	const int cross_start = m_cell_borders[col];
 	const int cross_size = m_cell_borders[col + span] - m_cell_borders[col];
-	const int main_length = m_row_height[row];
 	if (m_orientation == VERTICAL) {
 		return Rect2((float)cross_start, (float)main_offset, (float)cross_size, (float)main_length);
 	} else {

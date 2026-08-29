@@ -91,6 +91,13 @@ public:
 	// p_duration seconds with a decelerating ease (used by SnapHelper to settle
 	// on a snapped item/page).
 	void smooth_scroll_to(int p_target, double p_duration);
+	// Scrolls so the item at the given position is visible: top-aligned for a
+	// normal layout, bottom-aligned (mirroring Android's reverseLayout) when the
+	// layout reverses. Jumps immediately.
+	void scroll_to_position(int p_position);
+	// Smoothly scrolls to the item at the position (same target as
+	// scroll_to_position) over p_duration seconds.
+	void smooth_scroll_to_position(int p_position, double p_duration);
 	// Snap helper (LinearSnapHelper center-snap / PagerSnapHelper page-snap).
 	// Set it via SnapHelper::attach_to_recycler_view().
 	void set_snap_helper(const Ref<SnapHelper> &p_helper);
@@ -130,8 +137,7 @@ public:
 	Ref<ItemTouchHelper> get_item_touch_helper() const { return m_item_touch_helper; }
 	// Topmost child holder whose layout slot (get_layout_position) contains the
 	// RV-local point.
-	Ref<ViewHolder> find_child_holder_at(const Vector2 &p_local_pos);
-	// True while the touch helper is dragging/swiping or settling the holder:
+	Ref<ViewHolder> find_child_holder_at(const Vector2 &p_local_pos);	// True while the touch helper is dragging/swiping or settling the holder:
 	// the layout and the ItemAnimator must leave it alone.
 	bool is_item_touch_occupied(const Ref<ViewHolder> &p_holder) const;
 	// True once a drag has actually started scrolling (past the slop).
@@ -211,6 +217,10 @@ private:
 	// Scroll state machine internals.
 	int get_max_scroll_offset();
 	int get_max_scroll_offset_horizontal();
+	// The scroll offset that brings the item at the position into view: its
+	// leading edge top-aligned (normal) or its trailing edge bottom-aligned
+	// (reverse layout). Clamped by set_scroll_offset.
+	int target_offset_for_position(int p_position);
 	void set_scroll_state(int p_state);
 	void dispatch_scrolled(int p_dx, int p_dy);
 	void finish_drag();

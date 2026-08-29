@@ -44,8 +44,19 @@ public:
 
 	// The scroll offset at which the item at the position starts along the scroll
 	// axis (content space). SnapHelper settles a position by scrolling to this
-	// offset (plus a centering adjustment).
+	// offset (plus a centering adjustment); scroll_to_position scrolls to it so
+	// the item's leading edge aligns the viewport start (or its trailing edge the
+	// viewport end under reverse_layout).
 	virtual int get_position_offset(int p_position) const { return 0; }
+
+	// Reverse layout: items are laid out from the trailing edge (bottom for a
+	// vertical list) instead of the leading edge, and scrolling toward the scroll
+	// offset max shows the last item. Mirrors LinearLayoutManager.reverseLayout.
+	// The scroll offset space itself is unchanged (0 = content start), only the
+	// content->screen mapping flips.
+	void set_reverse_layout(bool p_reverse);
+	bool get_reverse_layout() const { return m_reverse_layout; }
+	bool is_reverse_layout() const { return m_reverse_layout; }
 
 	// Collects positions adjacent to the viewport in the given scroll direction
 	// (p_dy > 0 = scrolling down/right). The RecyclerView pre-creates these into
@@ -60,6 +71,7 @@ public:
 
 private:
 	RecyclerView *m_recycler_view = nullptr;
+	bool m_reverse_layout = false;
 };
 
 } // namespace godot

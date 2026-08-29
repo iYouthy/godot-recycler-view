@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://chat_demo.gd" id="1_chat"]
+
+[node name="ChatDemo" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_chat")
+
+[node name="HintLabel" type="Label" parent="."]
+layout_mode = 2
+text = "reverse_layout 聊天列表 — 最新消息在底部，滚轮上滑看历史；「发送」插入新消息并平滑回到底部"
+
+[node name="RecyclerView" type="RecyclerView" parent="."]
+item_size = 48
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SendButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "发送新消息"

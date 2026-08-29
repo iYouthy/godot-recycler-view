@@ -75,9 +75,17 @@ int RecyclerViewScrollBar::get_offset() const {
 	if (m_recycler_view == nullptr) {
 		return 0;
 	}
-	return m_axis == SCROLL_BAR_VERTICAL
+	int raw = m_axis == SCROLL_BAR_VERTICAL
 			? m_recycler_view->get_scroll_offset()
 			: m_recycler_view->get_scroll_offset_horizontal();
+	// reverse_layout keeps the raw offset space (0 = content start) but flips the
+	// content->screen mapping, so report the offset measured from the content end
+	// instead: the thumb then tracks the visible region (offset 0 = content start
+	// on screen shows the bottom, thumb at the bottom).
+	if (m_recycler_view->get_layout().is_valid() && m_recycler_view->get_layout()->is_reverse_layout()) {
+		raw = MAX(0, get_content_size() - get_viewport_size()) - raw;
+	}
+	return raw;
 }
 
 int RecyclerViewScrollBar::get_viewport_size() const {
@@ -322,7 +330,12 @@ void DefaultScrollBar::scroll_to_pos(float p_thumb_start) {
 		return;
 	}
 	const float t = CLAMP(p_thumb_start / travel, 0.0f, 1.0f);
-	const int target = (int)(t * max_offset);
+	int target = (int)(t * max_offset);
+	// Mirror get_offset: the thumb coordinates live in the "from content end"
+	// space, translate back to the raw scroll offset before applying.
+	if (m_recycler_view->get_layout().is_valid() && m_recycler_view->get_layout()->is_reverse_layout()) {
+		target = max_offset - target;
+	}
 	if (m_axis == SCROLL_BAR_VERTICAL) {
 		m_recycler_view->set_scroll_offset(target);
 	} else {

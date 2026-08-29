@@ -102,6 +102,8 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("find_child_holder_at", "local_pos"), &RecyclerView::find_child_holder_at);
 	ClassDB::bind_method(D_METHOD("is_item_touch_occupied", "holder"), &RecyclerView::is_item_touch_occupied);
 	ClassDB::bind_method(D_METHOD("smooth_scroll_to", "target", "duration"), &RecyclerView::smooth_scroll_to);
+	ClassDB::bind_method(D_METHOD("scroll_to_position", "position"), &RecyclerView::scroll_to_position);
+	ClassDB::bind_method(D_METHOD("smooth_scroll_to_position", "position", "duration"), &RecyclerView::smooth_scroll_to_position);
 	ClassDB::bind_method(D_METHOD("set_snap_helper", "helper"), &RecyclerView::set_snap_helper);
 	ClassDB::bind_method(D_METHOD("get_snap_helper"), &RecyclerView::get_snap_helper);
 	ClassDB::bind_method(D_METHOD("set_scroll_bar", "bar"), &RecyclerView::set_scroll_bar);
@@ -408,6 +410,13 @@ void RecyclerView::set_scroll_state(int p_state) {
 }
 
 void RecyclerView::dispatch_scrolled(int p_dx, int p_dy) {
+	// A reversed layout moves content the opposite way for the same scroll delta,
+	// so listeners receive the content-space direction (dy>0 = content moving
+	// down), matching Android's onScrolled regardless of reverse_layout.
+	if (m_layout.is_valid() && m_layout->is_reverse_layout()) {
+		p_dx = -p_dx;
+		p_dy = -p_dy;
+	}
 	for (int i = 0; i < m_scroll_listeners.size(); i++) {
 		m_scroll_listeners[i]->on_scrolled(p_dx, p_dy);
 	}
@@ -812,6 +821,28 @@ void RecyclerView::smooth_scroll_to(int p_target, double p_duration) {
 	m_settle_duration = p_duration;
 	m_settle_active = true;
 	set_scroll_state(SCROLL_STATE_SETTLING);
+}
+
+int RecyclerView::target_offset_for_position(int p_position) {
+	if (m_layout.is_null()) {
+		return 0;
+	}
+	// Scrolling to the item's content-space start aligns its leading edge to the
+	// viewport start (normal layout) or its trailing edge to the viewport end
+	// (reverse layout) — both are the same target. Clamped by set_scroll_offset.
+	return m_layout->get_position_offset(p_position);
+}
+
+void RecyclerView::scroll_to_position(int p_position) {
+	if (m_layout.is_valid() && m_layout->can_scroll_horizontally()) {
+		set_scroll_offset_horizontal(target_offset_for_position(p_position));
+	} else {
+		set_scroll_offset(target_offset_for_position(p_position));
+	}
+}
+
+void RecyclerView::smooth_scroll_to_position(int p_position, double p_duration) {
+	smooth_scroll_to(target_offset_for_position(p_position), p_duration);
 }
 
 void RecyclerView::advance_settle(double p_delta) {
