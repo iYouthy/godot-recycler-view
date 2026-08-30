@@ -83,7 +83,7 @@ void SortedList::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear"), &SortedList::clear);
 	ClassDB::bind_method(D_METHOD("begin_batched_updates"), &SortedList::begin_batched_updates);
 	ClassDB::bind_method(D_METHOD("end_batched_updates"), &SortedList::end_batched_updates);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "callback", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_callback", "get_callback");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "callback", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_callback", "get_callback"); // runtime ref, not scene-serializable
 }
 
 SortedList::SortedList() {}

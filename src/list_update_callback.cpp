@@ -42,7 +42,7 @@ void BatchingListUpdateCallback::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_last_event_position"), &BatchingListUpdateCallback::get_last_event_position);
 	ClassDB::bind_method(D_METHOD("get_last_event_count"), &BatchingListUpdateCallback::get_last_event_count);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "wrapped", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_wrapped", "get_wrapped");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "wrapped", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_wrapped", "get_wrapped"); // runtime ref, not scene-serializable
 }
 
 BatchingListUpdateCallback::BatchingListUpdateCallback(const Ref<ListUpdateCallback> &p_wrapped) :

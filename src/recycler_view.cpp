@@ -117,8 +117,13 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_SETTLING", SCROLL_STATE_SETTLING);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "adapter", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_adapter", "get_adapter");
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "layout", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT), "set_layout", "get_layout");
+	// adapter/layout are runtime assembly, not scene data: they hold RefCounted
+	// objects (not Resources) that the scene saver cannot serialize. Keep them
+	// visible in the inspector but never persist them (PROPERTY_USAGE_EDITOR
+	// omits PROPERTY_USAGE_STORAGE), or a @tool scene that sets them breaks
+	// scene saving with "Resource was not pre cached for the resource section".
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "adapter", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_adapter", "get_adapter");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "layout", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_layout", "get_layout");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_extent"), "set_item_extent", "get_default_item_extent");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical_wheel_scrolls_horizontal"), "set_vertical_wheel_scrolls_horizontal", "get_vertical_wheel_scrolls_horizontal");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_bar_auto_hide"), "set_scroll_bar_auto_hide", "get_scroll_bar_auto_hide");

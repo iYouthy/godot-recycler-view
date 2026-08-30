@@ -33,7 +33,7 @@ void ViewHolder::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("reset_internal"), &ViewHolder::reset_internal);
 	ClassDB::bind_method(D_METHOD("flag_removed_and_offset_position", "new_position", "offset", "apply_to_pre_layout"), &ViewHolder::flag_removed_and_offset_position);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "control", PROPERTY_HINT_NONE, "Control", PROPERTY_USAGE_DEFAULT), "set_control", "get_control");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "control", PROPERTY_HINT_NONE, "Control", PROPERTY_USAGE_EDITOR), "set_control", "get_control"); // runtime ref, not scene-serializable
 
 	ClassDB::bind_integer_constant(get_class_static(), "Flag", "FLAG_BOUND", FLAG_BOUND);
 	ClassDB::bind_integer_constant(get_class_static(), "Flag", "FLAG_UPDATE", FLAG_UPDATE);
