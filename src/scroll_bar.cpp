@@ -393,18 +393,18 @@ void DefaultScrollBar::end_drag_buffer() {
 }
 
 void DefaultScrollBar::_process(double p_delta) {
-	// While dragging, keep following the mouse even outside the window: Godot
-	// stops sending motion events once the cursor leaves the window, so the
-	// drag would otherwise stall. Polling the system mouse position keeps the
-	// thumb pinned to the cursor (clamped to the content bounds).
+	// While dragging, keep following the mouse even when the cursor leaves the
+	// RecyclerView: Godot only routes motion events to the control under the
+	// cursor, so a drag that wanders over a neighbouring control (e.g. a second
+	// RV in a HBoxContainer) would stall. Polling the system mouse position
+	// keeps the thumb pinned to the cursor; inside the RV the RecyclerView
+	// forwards its events to the bar (RecyclerView::forward_to_scroll_bar), so
+	// _gui_input already consumes them and polling would double-consume the
+	// same delta. Only poll when the cursor is outside the RV.
 	if (m_dragging && get_viewport() != nullptr && Input::get_singleton() != nullptr) {
 		if (Input::get_singleton()->is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)) {
 			const Vector2 global = get_viewport()->get_mouse_position();
-			// _gui_input already consumes the motion events while the cursor is
-			// inside the window; only poll here once it has left, otherwise the
-			// two paths would double-consume the same mouse delta.
-			const Vector2 win = get_viewport()->get_visible_rect().size;
-			if (global.x < 0.0f || global.y < 0.0f || global.x > win.x || global.y > win.y) {
+			if (m_recycler_view == nullptr || !m_recycler_view->get_global_rect().has_point(global)) {
 				const float along = m_axis == SCROLL_BAR_VERTICAL
 						? global.y - get_global_position().y
 						: global.x - get_global_position().x;
