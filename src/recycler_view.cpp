@@ -1158,10 +1158,15 @@ void RecyclerView::set_item_view_position(const Ref<ViewHolder> &p_holder, const
 		return;
 	}
 	// Inset the item by the decorations' accumulated offsets so dividers/spacing
-	// show in the gaps. Layout managers work with the uninflated geometry.
+	// show in the gaps. Layout managers work with the uninflated geometry. Clamp
+	// the size to zero so an offset larger than the item's extent can't collapse
+	// the control into a negative size; spacing wider than the item must instead
+	// be added to the reported extent (item height + gap) and offset back here.
 	const Vector4 insets = get_item_insets(p_holder->get_position());
 	const Vector2 final_pos = p_pos + Vector2(insets.x, insets.y);
-	const Vector2 final_size = p_size - Vector2(insets.x + insets.z, insets.y + insets.w);
+	const Vector2 final_size = Vector2(
+			MAX(0.0f, p_size.x - (insets.x + insets.z)),
+			MAX(0.0f, p_size.y - (insets.y + insets.w)));
 	control->set_position(final_pos);
 	control->set_size(final_size);
 }
