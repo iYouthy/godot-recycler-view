@@ -61,6 +61,14 @@ public:
 	bool is_tmp_detached() const { return (m_flags & FLAG_TMP_DETACHED) != 0; }
 	bool is_adapter_position_unknown() const { return (m_flags & FLAG_ADAPTER_POSITION_UNKNOWN) != 0; }
 
+	// True once the control has been mounted at least once. The control's scene
+	// ran its ready pass (@onready references populated) on that first mount;
+	// an unmounted control's @onready refs are still null, so binding it
+	// directly would run _bind_item against an unready scene. Survives
+	// reset_internal (a recycled holder keeps its ready state).
+	bool has_mounted_once() const { return m_mounted_once; }
+	void mark_mounted_once() { m_mounted_once = true; }
+
 	bool is_recyclable() const { return (m_flags & FLAG_NOT_RECYCLABLE) == 0 && m_is_recyclable_count <= 0; }
 	void set_is_recyclable(bool p_recyclable);
 
@@ -85,6 +93,7 @@ private:
 	int m_pre_layout_position = NO_POSITION;
 	int m_flags = 0;
 	int m_is_recyclable_count = 0;
+	bool m_mounted_once = false;
 };
 
 } // namespace godot

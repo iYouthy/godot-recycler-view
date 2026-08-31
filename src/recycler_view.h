@@ -279,6 +279,12 @@ private:
 	// viewport does not change the offset table — a change there would move
 	// every visible row (scrolling the other way visibly jitters).
 	void prefetch_and_measure(int p_position);
+	// First-mount bind: Godot runs an item scene's ready pass at the end of the
+	// frame, not inside add_child, so a freshly created control's @onready
+	// references are still null right after the mount. add_item_view connects
+	// this one-shot handler to the control's ready signal for that first mount;
+	// the deferred bind runs here, with the scene initialized.
+	void _on_item_ready(const Ref<ViewHolder> &p_holder);
 	bool try_start_fling(float p_velocity);
 
 	// Auto-measure (Android wrap_content / match_parent): measures the item's

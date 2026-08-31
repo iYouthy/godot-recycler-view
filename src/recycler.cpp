@@ -39,6 +39,9 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 	const int type = m_adapter->get_item_view_type(p_position);
 
 	// 0. Changed scrap: a holder dropped by an update in this layout cycle.
+	// These holders were mounted before (their scene _ready already ran), so a
+	// bind here is safe. Its FLAG_BOUND survives (no reset), so the mount in
+	// add_item_view skips the re-bind — position matched, content unchanged.
 	for (int i = 0; i < m_changed_scrap.size(); i++) {
 		Ref<ViewHolder> scrap = m_changed_scrap[i];
 		if (scrap->get_position() == p_position && scrap->get_item_view_type() == type) {
@@ -49,14 +52,18 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 	}
 
 	// 1. View cache: match by layout position and view type.
+	// No bind here: the holder is off-tree, and a freshly prefetched one has
+	// never entered the tree, so its scene's _ready/@onready references are
+	// still null. The bind is deferred to add_item_view, which mounts the
+	// control (running the ready pass) before calling the adapter's _bind_item.
 	for (int i = 0; i < m_cached_views.size(); i++) {
 		Ref<ViewHolder> cached = m_cached_views[i];
 		if (cached->get_position() == p_position && cached->get_item_view_type() == type) {
 			m_cached_views.remove_at(i);
+			cached->set_position(p_position);
 			if (m_adapter->has_stable_ids()) {
 				cached->set_stable_id(m_adapter->get_item_id(p_position));
 			}
-			m_adapter->bind_view_holder(cached, p_position);
 			return cached;
 		}
 	}
@@ -106,15 +113,16 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 			m_cached_views.remove_at(i);
 			cached->reset_internal();
 			cached->set_item_view_type(type);
+			cached->set_position(p_position);
 			if (m_adapter->has_stable_ids()) {
 				cached->set_stable_id(m_adapter->get_item_id(p_position));
 			}
-			m_adapter->bind_view_holder(cached, p_position);
 			return cached;
 		}
 	}
 
-	// 2. Recycled pool, by view type.
+	// 2. Recycled pool, by view type. Deferred bind as in the cache branch:
+	// the holder may have been prefetched and never entered the tree.
 	void *pooled = m_pool.get_recycled_view(type);
 	if (pooled != nullptr) {
 		for (int i = 0; i < m_pool_holders.size(); i++) {
@@ -123,22 +131,24 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 				m_pool_holders.remove_at(i);
 				holder->reset_internal();
 				holder->set_item_view_type(type);
+				holder->set_position(p_position);
 				if (m_adapter->has_stable_ids()) {
 					holder->set_stable_id(m_adapter->get_item_id(p_position));
 				}
-				m_adapter->bind_view_holder(holder, p_position);
 				return holder;
 			}
 		}
 	}
 
-	// 3. Create a fresh holder.
+	// 3. Create a fresh holder. Its control never entered the tree, so binding
+	// here would run _bind_item against an unready scene (@onready refs null).
+	// add_item_view mounts it (the ready pass runs) and binds it there.
 	Ref<ViewHolder> holder = m_adapter->create_view_holder(nullptr, type);
 	if (holder.is_valid()) {
+		holder->set_position(p_position);
 		if (m_adapter->has_stable_ids()) {
 			holder->set_stable_id(m_adapter->get_item_id(p_position));
 		}
-		m_adapter->bind_view_holder(holder, p_position);
 	}
 	return holder;
 }

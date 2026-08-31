@@ -1317,6 +1317,28 @@ void RecyclerView::add_item_view(const Ref<ViewHolder> &p_holder) {
 		// A holder reused after a remove fade-out has a faded alpha; reset it.
 		control->set_modulate(Color(1, 1, 1, 1));
 		add_child(control);
+		// Port of Adapter.onBindViewHolder: a holder that was mounted before
+		// (its scene ran the ready pass, so @onready references are populated
+		// and survive detach) can bind right away; FLAG_BOUND is cleared by
+		// reset_internal for pool/cache reuses. A first-time mount is different:
+		// Godot runs the item scene's ready pass at the end of the frame, NOT
+		// inside add_child, so the control's @onready references are still null
+		// right after the mount — binding now would run _bind_item against an
+		// unready scene (a scene item refreshing its labels hits null refs).
+		// Defer the first bind to the control's ready signal.
+		if (m_adapter.is_valid() && !p_holder->is_bound()) {
+			// An off-tree RV (build-time layout, unit tests) never runs ready
+			// signals, so a first mount there must bind synchronously like
+			// before — deferring would leave the holder forever unbound.
+			// In-tree first mounts defer to the ready signal instead.
+			if (p_holder->has_mounted_once() || !control->is_inside_tree() || control->is_node_ready()) {
+				m_adapter->bind_view_holder(p_holder, p_holder->get_position());
+			} else {
+				Callable bind = callable_mp(this, &RecyclerView::_on_item_ready).bind(p_holder);
+				control->connect("ready", bind, Object::CONNECT_ONE_SHOT);
+			}
+		}
+		p_holder->mark_mounted_once();
 		// Port of Adapter.onViewAttachedToWindow: the item Control just entered
 		// the RecyclerView's tree, i.e. it is about to be seen by the user.
 		// Reuses from the cache/pool re-attach and fire this again, matching
@@ -1326,6 +1348,25 @@ void RecyclerView::add_item_view(const Ref<ViewHolder> &p_holder) {
 		}
 	}
 	m_children.push_back(p_holder);
+}
+
+void RecyclerView::_on_item_ready(const Ref<ViewHolder> &p_holder) {
+	if (p_holder.is_null() || p_holder->is_bound() || m_adapter.is_null()) {
+		return;
+	}
+	m_adapter->bind_view_holder(p_holder, p_holder->get_position());
+	// Auto-measure: the layout measured this row from empty content (the bind
+	// could not happen before the ready pass). Drop its measurement and re-run
+	// the layout so the slot follows the bound content.
+	if (m_auto_measure_items && m_layout.is_valid()) {
+		const int pos = p_holder->get_position();
+		if (pos >= 0 && pos < (int)m_measured_extents.size()) {
+			m_measured_extents.write[pos] = 0;
+			m_measured_expand_flags.write[pos] = false;
+		}
+		m_layout->on_data_changed();
+		request_layout();
+	}
 }
 
 void RecyclerView::remove_item_view(const Ref<ViewHolder> &p_holder) {
@@ -1902,6 +1943,23 @@ void RecyclerView::prefetch_and_measure(int p_position) {
 	// not in the bare add_child/remove_child used here.
 	if (control != nullptr) {
 		add_child(control);
+		// The measurement reads the item content, so the holder must be bound
+		// first. A holder that was mounted before can bind right away (its
+		// @onready refs survive detach); a fresh holder cannot — its scene has
+		// not run the ready pass yet (that happens at the end of the frame), so
+		// binding would read null refs and the measurement would read empty
+		// content. Skip the measurement; the first real mount binds and
+		// measures this row instead.
+		if (m_adapter.is_valid() && !holder->is_bound()) {
+			// Off-tree RVs never run ready signals: bind synchronously. Only an
+			// in-tree fresh mount must wait for its ready pass.
+			if (!holder->has_mounted_once() && control->is_inside_tree()) {
+				remove_child(control);
+				m_recycler->recycle_view(holder, p_position);
+				return;
+			}
+			m_adapter->bind_view_holder(holder, p_position);
+		}
 		const bool h = m_layout.is_valid() && m_layout->can_scroll_horizontally();
 		const float width = h ? get_viewport_size().y : get_viewport_size().x;
 		const int measured = measure_item_extent(holder, p_position, width);
