@@ -76,22 +76,41 @@ types get separate recycled-pool slots. Defaults to 0 (a single type).</descript
 		<method name="_on_failed_to_recycle_view" qualifiers="virtual">
 			<return type="bool" />
 			<param index="0" name="holder" type="ViewHolder" />
-			<description>Reserved for future use; not currently called by the engine.</description>
+			<description>Called when the RecyclerView is about to recycle a holder that was declared
+non-recyclable via [method ViewHolder.set_is_recyclable] (false). Return [code]true[/code]
+to force the recycle anyway; [code]false[/code] (the default) keeps the holder attached
+and the decision is re-visited on later layout passes. Port of Android's
+[b]Adapter.onFailedToRecycleView[/b] (Android triggers it via view transient state, which
+this port folds into [method ViewHolder.set_is_recyclable]). The holder is still attached
+to the RecyclerView when this is called, unlike Android where it was already removed.</description>
 		</method>
 		<method name="_on_item_recycled" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="holder" type="ViewHolder" />
-			<description>Reserved for future use; not currently called by the engine.</description>
+			<description>Called right before a holder leaves the view cache for the recycled pool: its data is
+about to be cleared and its view reused for a different item. Good place to release
+expensive resources (large textures, connections). The holder's [method ViewHolder.get_position]
+is still valid here. Not called when a holder enters the view cache (data is kept for a
+possible in-place reuse) nor for prefetched (never bound) views. Port of Android's
+[b]Adapter.onViewRecycled[/b] (dispatched from Recycler.recycleViewHolderInternal /
+recycleCachedViewAt).</description>
 		</method>
-		<method name="_on_view_attached_to_window" qualifiers="virtual">
+		<method name="_on_view_attached" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="holder" type="ViewHolder" />
-			<description>Reserved for future use; not currently called by the engine.</description>
+			<description>Called when the item's Control was added to the RecyclerView's tree — a reasonable
+signal that the item is about to be seen by the user. Restore resources released in
+[method _on_view_detached] here. Fires on every re-attach (scroll back into view, reuse
+from the cache or pool). Port of Android's [b]Adapter.onViewAttachedToWindow[/b]; the
+"window" concept does not exist for Godot Controls, so the name drops it.</description>
 		</method>
-		<method name="_on_view_detached_from_window" qualifiers="virtual">
+		<method name="_on_view_detached" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="holder" type="ViewHolder" />
-			<description>Reserved for future use; not currently called by the engine.</description>
+			<description>Called when the item's Control was removed from the RecyclerView's tree (scrolled off
+screen, removed, or its remove animation finished). Not necessarily permanent — the view
+may be cached off-screen and re-attached later. Port of Android's [b]Adapter.onViewDetachedFromWindow[/b];
+the "window" concept does not exist for Godot Controls, so the name drops it.</description>
 		</method>
 		<method name="bind_view_holder">
 			<return type="void" />

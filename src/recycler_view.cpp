@@ -903,6 +903,13 @@ bool RecyclerView::is_item_touch_occupied(const Ref<ViewHolder> &p_holder) const
 	return m_item_touch_helper.is_valid() && m_item_touch_helper->is_occupied(p_holder);
 }
 
+bool RecyclerView::on_failed_to_recycle_view(const Ref<ViewHolder> &p_holder) {
+	if (m_adapter.is_valid()) {
+		return m_adapter->on_failed_to_recycle_view(p_holder);
+	}
+	return false;
+}
+
 Vector2 RecyclerView::get_layout_position(const Ref<ViewHolder> &p_holder) {
 	if (m_layout.is_null() || p_holder.is_null()) {
 		return Vector2();
@@ -924,6 +931,13 @@ void RecyclerView::recycle_removed(const Ref<ViewHolder> &p_holder) {
 	Control *control = p_holder->get_control();
 	if (control != nullptr && control->get_parent() == this) {
 		remove_child(control);
+		// Port of Adapter.onViewDetachedFromWindow: the remove animation just
+		// finished, so the control finally leaves the tree (it stayed attached
+		// while fading out). It was already dropped from m_children, so
+		// remove_item_view is not involved.
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_detached(p_holder);
+		}
 	}
 	m_recycler->scrap_view(p_holder);
 }
@@ -933,6 +947,12 @@ void RecyclerView::recycle_if_out_of_view(const Ref<ViewHolder> &p_holder) {
 		return;
 	}
 	if (!is_holder_out_of_view(p_holder)) {
+		return;
+	}
+	// Port of Adapter.onFailedToRecycleView: a holder declared non-recyclable
+	// (set_is_recyclable(false)) stays attached unless the adapter forces the
+	// recycle; the decision is re-visited on later passes.
+	if (!p_holder->is_recyclable() && !on_failed_to_recycle_view(p_holder)) {
 		return;
 	}
 	// The holder just finished animating and its slot is fully outside the
@@ -1129,6 +1149,13 @@ void RecyclerView::add_item_view(const Ref<ViewHolder> &p_holder) {
 		// A holder reused after a remove fade-out has a faded alpha; reset it.
 		control->set_modulate(Color(1, 1, 1, 1));
 		add_child(control);
+		// Port of Adapter.onViewAttachedToWindow: the item Control just entered
+		// the RecyclerView's tree, i.e. it is about to be seen by the user.
+		// Reuses from the cache/pool re-attach and fire this again, matching
+		// Android's attach/detach-on-scroll behavior.
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_attached(p_holder);
+		}
 	}
 	m_children.push_back(p_holder);
 }
@@ -1149,6 +1176,12 @@ void RecyclerView::remove_item_view(const Ref<ViewHolder> &p_holder) {
 	Control *control = p_holder->get_control();
 	if (control != nullptr && control->get_parent() == this) {
 		remove_child(control);
+		// Port of Adapter.onViewDetachedFromWindow: the item Control left the
+		// RecyclerView's tree (scrolled off, removed, or recycled). Not
+		// permanent: a later re-attach fires on_view_attached again.
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_detached(p_holder);
+		}
 	}
 }
 

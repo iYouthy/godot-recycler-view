@@ -142,6 +142,14 @@ void Recycler::recycle_view(const Ref<ViewHolder> &p_holder, int p_position) {
 	if (!m_cached_views.is_empty()) {
 		Ref<ViewHolder> victim = m_cached_views[0];
 		m_cached_views.remove_at(0);
+		// Port of RecyclerView.Recycler.dispatchViewRecycled (cache overflow:
+		// recycleCachedViewAt): the view is about to lose its data and be reused
+		// for a different item, so tell the adapter before clearing the holder
+		// (its position is still readable here). Views that stay in the cache are
+		// kept as-is and never dispatch this.
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_recycled(victim);
+		}
 		victim->reset_internal();
 		const int type = victim->get_item_view_type();
 		if (m_pool.get_recycled_view_count(type) >= m_pool.get_max_recycled_views(type)) {
@@ -175,6 +183,13 @@ void Recycler::scrap_view(const Ref<ViewHolder> &p_holder) {
 void Recycler::flush_scrap_to_pool() {
 	for (int i = 0; i < m_changed_scrap.size(); i++) {
 		Ref<ViewHolder> holder = m_changed_scrap[i];
+		// Port of Recycler.dispatchViewRecycled (scrap -> pool): the holder was
+		// dropped by an update and is not reused in this layout cycle, so it is
+		// about to lose its data. Dispatched even when the pool is full and the
+		// view is discarded below (Android dispatches before putRecycledView).
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_recycled(holder);
+		}
 		holder->reset_internal();
 		const int type = holder->get_item_view_type();
 		if (m_pool.get_recycled_view_count(type) < m_pool.get_max_recycled_views(type)) {

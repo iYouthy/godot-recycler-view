@@ -137,9 +137,15 @@ public:
 	Ref<ItemTouchHelper> get_item_touch_helper() const { return m_item_touch_helper; }
 	// Topmost child holder whose layout slot (get_layout_position) contains the
 	// RV-local point.
-	Ref<ViewHolder> find_child_holder_at(const Vector2 &p_local_pos);	// True while the touch helper is dragging/swiping or settling the holder:
+	Ref<ViewHolder> find_child_holder_at(const Vector2 &p_local_pos);
+	// True while the touch helper is dragging/swiping or settling the holder:
 	// the layout and the ItemAnimator must leave it alone.
 	bool is_item_touch_occupied(const Ref<ViewHolder> &p_holder) const;
+	// Port of Adapter.onFailedToRecycleView: consults the adapter before a
+	// non-recyclable holder (set_is_recyclable(false)) is recycled. Returns true
+	// to force the recycle; false (default) keeps the holder attached and the
+	// decision is re-visited on later layout passes.
+	bool on_failed_to_recycle_view(const Ref<ViewHolder> &p_holder);
 	// True once a drag has actually started scrolling (past the slop).
 	bool is_scroll_drag_active() const { return m_dragging && m_drag_scrolled; }
 	// True while a deferred layout (notify_*) is still pending this frame.

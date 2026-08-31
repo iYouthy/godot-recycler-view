@@ -136,6 +136,13 @@ void LinearLayoutManager::on_layout_children(RecyclerView *p_recycler_view, Stat
 			if (p_recycler_view->is_item_touch_occupied(holder)) {
 				continue;
 			}
+			// Port of Adapter.onFailedToRecycleView: a holder declared
+			// non-recyclable (set_is_recyclable(false)) stays attached unless
+			// the adapter forces the recycle; the decision is re-visited on
+			// every layout pass.
+			if (!holder->is_recyclable() && !p_recycler_view->on_failed_to_recycle_view(holder)) {
+				continue;
+			}
 			// An animated holder scrolled fully out of view: cancel its
 			// animation so it can be recycled now. Without this, rapid scrolling
 			// past a mutation leaves every animated holder out of view (blocking

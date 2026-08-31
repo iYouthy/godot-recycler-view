@@ -69,8 +69,8 @@ void Adapter::_bind_methods() {
 	GDVIRTUAL_BIND(_get_item_id, "position");
 	GDVIRTUAL_BIND(_on_item_recycled, "holder");
 	GDVIRTUAL_BIND(_on_failed_to_recycle_view, "holder");
-	GDVIRTUAL_BIND(_on_view_attached_to_window, "holder");
-	GDVIRTUAL_BIND(_on_view_detached_from_window, "holder");
+	GDVIRTUAL_BIND(_on_view_attached, "holder");
+	GDVIRTUAL_BIND(_on_view_detached, "holder");
 }
 
 Ref<ViewHolder> Adapter::create_view_holder(Control *p_parent, int p_view_type) {
@@ -132,6 +132,24 @@ int64_t Adapter::get_item_id(int p_position) {
 	int64_t result = NO_ID;
 	GDVIRTUAL_CALL(_get_item_id, p_position, result);
 	return result;
+}
+
+void Adapter::on_view_recycled(const Ref<ViewHolder> &p_holder) {
+	GDVIRTUAL_CALL(_on_item_recycled, p_holder);
+}
+
+bool Adapter::on_failed_to_recycle_view(const Ref<ViewHolder> &p_holder) {
+	bool result = false;
+	GDVIRTUAL_CALL(_on_failed_to_recycle_view, p_holder, result);
+	return result;
+}
+
+void Adapter::on_view_attached(const Ref<ViewHolder> &p_holder) {
+	GDVIRTUAL_CALL(_on_view_attached, p_holder);
+}
+
+void Adapter::on_view_detached(const Ref<ViewHolder> &p_holder) {
+	GDVIRTUAL_CALL(_on_view_detached, p_holder);
 }
 
 void Adapter::set_has_stable_ids(bool p_has_stable_ids) {

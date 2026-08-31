@@ -55,16 +55,35 @@ public:
 	GDVIRTUAL1R(int, _get_item_view_type, int)
 	GDVIRTUAL1R(int, _get_item_extent, int)
 	GDVIRTUAL1R(int64_t, _get_item_id, int)
+	// Renamed from Android's Adapter.onViewRecycled: the view is about to lose
+	// its data (returned to the recycled pool), so release expensive resources.
 	GDVIRTUAL1(_on_item_recycled, Ref<ViewHolder>)
+	// Renamed from Android's Adapter.onFailedToRecycleView: a holder declared
+	// non-recyclable (set_is_recyclable(false)) is about to be recycled; return
+	// true to force the recycle, false (default) to keep it attached and
+	// re-visit the decision on later layout passes.
 	GDVIRTUAL1R(bool, _on_failed_to_recycle_view, Ref<ViewHolder>)
-	GDVIRTUAL1(_on_view_attached_to_window, Ref<ViewHolder>)
-	GDVIRTUAL1(_on_view_detached_from_window, Ref<ViewHolder>)
+	// Renamed from Android's Adapter.onViewAttachedToWindow (there is no
+	// window concept in Godot): the item Control was added to the RecyclerView,
+	// i.e. it is about to be seen by the user.
+	GDVIRTUAL1(_on_view_attached, Ref<ViewHolder>)
+	// Renamed from Android's Adapter.onViewDetachedFromWindow: the item Control
+	// was removed from the RecyclerView (scrolled off, removed, or its remove
+	// animation finished). Not necessarily permanent: it may be attached again.
+	GDVIRTUAL1(_on_view_detached, Ref<ViewHolder>)
 
 	Ref<ViewHolder> create_view_holder(Control *p_parent, int p_view_type);
 	void bind_view_holder(const Ref<ViewHolder> &p_holder, int p_position);
 	// Binds with a change payload: calls _bind_item_with_payload when the payload
 	// is set and the script implements it, otherwise falls back to a full rebind.
 	void bind_view_holder_with_payload(const Ref<ViewHolder> &p_holder, int p_position, const Variant &p_payload);
+
+	// Lifecycle dispatchers (called by the RecyclerView / Recycler; see the
+	// GDVIRTUAL hooks above for the Android mapping).
+	void on_view_recycled(const Ref<ViewHolder> &p_holder);
+	bool on_failed_to_recycle_view(const Ref<ViewHolder> &p_holder);
+	void on_view_attached(const Ref<ViewHolder> &p_holder);
+	void on_view_detached(const Ref<ViewHolder> &p_holder);
 
 	// Virtual so adapter subclasses (e.g. ListAdapter) can derive the count from
 	// their own state instead of a script _get_item_count override.
