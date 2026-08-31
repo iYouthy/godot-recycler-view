@@ -104,6 +104,7 @@ add_child(rv)
 | `chat_demo.tscn` | reverse 布局聊天列表，新消息在底部 |
 | `horizontal_demo.tscn` | 水平列表 + 水平滚动条 |
 | `custom_scroll_bar_demo.tscn` | 继承 `RecyclerViewScrollBar` 的自定义滚动条 |
+| `lifecycle_demo.tscn` | Adapter 生命周期回调（attach / detach / recycled / 拒绝回收）+ 实时事件日志 |
 | `nested_demo.tscn` | 嵌套 RecyclerView 联动滚动 |
 
 ## 文档

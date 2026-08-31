@@ -104,6 +104,7 @@ Open the `project/` folder in Godot and run any scene:
 | `snap_demo.tscn` | `LinearSnapHelper` chip row + `PagerSnapHelper` carousel |
 | `chat_demo.tscn` | Reverse-layout chat list; new messages at the bottom |
 | `horizontal_demo.tscn` | Horizontal list with a horizontal scroll bar |
+| `lifecycle_demo.tscn` | Adapter lifecycle callbacks (attach / detach / recycled / failed-to-recycle) with a live event log |
 | `custom_scroll_bar_demo.tscn` | A custom scroll bar subclassing `RecyclerViewScrollBar` |
 | `nested_demo.tscn` | Nested RecyclerViews scrolling together |
 
