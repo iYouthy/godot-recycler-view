@@ -17,7 +17,14 @@ protected:
 	static void _bind_methods();
 
 public:
-	void set_adapter(const Ref<Adapter> &p_adapter);
+	// Raw pointer, not Ref: the adapter owns this callback (ListAdapter holds it
+	// in its m_update_callback Ref), so a Ref back to the adapter would form a
+	// reference cycle (adapter <-> callback) and leak both. Taking a raw pointer
+	// also avoids constructing a temporary Ref<Adapter> from `this` inside the
+	// ListAdapter constructor: Ref(T*) uses init_ref(), which releases the
+	// engine-side reference on destruction and would free the still-constructed
+	// object mid-construction.
+	void set_adapter(Adapter *p_adapter);
 	Ref<Adapter> get_adapter() const;
 
 	void on_inserted(int p_position, int p_count) override;
@@ -26,7 +33,12 @@ public:
 	void on_changed(int p_position, int p_count, const Variant &p_payload) override;
 
 private:
-	Ref<Adapter> m_adapter;
+	// Raw pointer, not Ref: the adapter owns this callback (ListAdapter holds it
+	// in its m_update_callback Ref), so a Ref back to the adapter would form a
+	// reference cycle (adapter <-> callback) and leak both. The callback is
+	// destroyed together with the adapter, so the pointer never dangles while
+	// the callback is alive.
+	Adapter *m_adapter = nullptr;
 };
 
 } // namespace godot
