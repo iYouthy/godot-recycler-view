@@ -73,8 +73,9 @@ func test_scroll_moves_visible_window_and_recycles() -> void:
 	# Still 10 visible, but position window shifted by one.
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	assert_that(rv.get_scroll_offset()).is_equal(60)
-	# One new item came into view; one was recycled. Creation stays bounded.
-	assert_that(adapter.created).is_equal(created_before + 1)
+	# The scrolled-out holder moves through the cache into the pool on the fill
+	# miss and is reused for the incoming item: creation does not move.
+	assert_that(adapter.created).is_equal(created_before)
 	rv.free_items()
 	rv.free()
 
@@ -169,9 +170,12 @@ func test_recycler_holds_cached_and_pooled() -> void:
 	var adapter: ItemAdapter = setup.adapter
 	adapter.count = 100
 	rv.request_layout()
-	rv.scroll_vertically(600)
-	# After scrolling one viewport, old holders are in the cache/pool.
-	assert_that(rv.get_recycler().size() > 0).is_true()
+	# Shrink the list: holders 5..9 leave the tree and nothing refills them, so
+	# they are held for reuse (viewport-sized cache / pool), not leaked.
+	adapter.count = 5
+	adapter.notify_item_range_removed(5, 95)
+	await get_tree().process_frame
+	assert_that(rv.get_recycler().size()).is_equal(5)
 	rv.free_items()
 	rv.free()
 

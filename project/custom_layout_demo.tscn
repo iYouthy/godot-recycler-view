@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://custom_layout_demo.gd" id="1_demo"]
+
+[node name="CustomLayoutDemo" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="InfoLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="ScrollToButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+text = "滚到第 100 行"
+
+[node name="RecyclerView" type="RecyclerView" parent="."]
+item_extent = 40
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HintLabel" type="Label" parent="."]
+layout_mode = 2
+text = "布局来自 GDScript 子类 CustomLayoutManager（波浪排布）。打开 custom_layout_manager.gd 看完整教学注释。"

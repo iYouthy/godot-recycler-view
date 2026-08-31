@@ -1,22 +1,93 @@
 <?xml version='1.0' encoding='utf-8'?>
 <class xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="LayoutManager" inherits="RefCounted" api_type="extension" xsi:noNamespaceSchemaLocation="../class.xsd">
-	<brief_description>Abstract base for layout strategies (linear / grid / staggered).</brief_description>
+	<brief_description>Base class for layout strategies (linear / grid / staggered / custom).</brief_description>
 	<description>LayoutManager is the port of [i]RecyclerView.LayoutManager[/i]. It defines the layout
-strategy used to position items and to decide which positions are visible. You normally use
-one of its concrete subclasses ([b]LinearLayoutManager[/b], [b]GridLayoutManager[/b],
-[b]StaggeredGridLayoutManager[/b]) rather than subclassing this class in GDScript.
+strategy used to position items and to decide which positions are visible. Use one of the
+concrete subclasses ([b]LinearLayoutManager[/b], [b]GridLayoutManager[/b],
+[b]StaggeredGridLayoutManager[/b]) for the common layouts — or extend this class in GDScript
+to implement your own: override [method _on_layout_children] (required) and the other
+[code]_*[/code] virtuals below. See [method _on_layout_children] for the full contract.
 
-[b]Note:[/b] [method get_content_size] and [method get_position_offset] are bound on this
-base class but overridden by the concrete managers internally; calling them from GDScript
-returns the base-class default (0). Use [method LinearLayoutManager.get_item_offset] or the
-managers' row/column queries when you need geometry from a script.</description>
+A custom layout does not scroll or recycle by itself. The [b]RecyclerView[/b] owns the scroll
+offset: it re-runs [method _on_layout_children] after every offset change, and clamps the
+offset against [method _get_content_size]. The script positions holders through the
+RecyclerView's public API ([method RecyclerView.get_view_for_position],
+[method RecyclerView.add_item_view], [method RecyclerView.set_item_view_position],
+[method RecyclerView.remove_item_view], [method RecyclerView.recycle_view]) and reads the
+inputs through [method get_item_count], [method RecyclerView.get_scroll_offset],
+[method RecyclerView.get_viewport_size] and [method RecyclerView.get_item_extent].</description>
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="_can_scroll_horizontally" qualifiers="virtual const">
+			<return type="bool" />
+			<description>Returns whether the list can scroll horizontally (default false). Mirrors Android's [b]LayoutManager.canScrollHorizontally[/b]. Drives horizontal gestures and the scroll bar.</description>
+		</method>
+		<method name="_can_scroll_vertically" qualifiers="virtual const">
+			<return type="bool" />
+			<description>Returns whether the list can scroll vertically (default false). Mirrors Android's [b]LayoutManager.canScrollVertically[/b]. Drives vertical gestures and the scroll bar.</description>
+		</method>
+		<method name="_collect_adjacent_prefetch_positions" qualifiers="virtual const">
+			<return type="Array" />
+			<param index="0" name="dy" type="int" />
+			<description>Returns positions just ahead of the viewport in the scroll direction (positive [code]dy[/code] = scrolling down/right) so the RecyclerView can pre-create their views into the recycled pool. Mirrors Android's [b]LayoutManager.collectAdjacentPrefetchPositions[/b]. Use [method get_recycler_view] to inspect the list. Optional: without it, no prefetch happens.</description>
+		</method>
+		<method name="_get_content_size" qualifiers="virtual const">
+			<return type="int" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<description>Returns the content size along the scroll axis (default 0, which clamps the list to one viewport). Mirrors Android's [b]LayoutManager.computeVerticalScrollRange[/b]. The RecyclerView clamps the scroll offset to [code]content − viewport[/code] with this value, so it must cover every position the layout can show.</description>
+		</method>
+		<method name="_get_item_rect" qualifiers="virtual const">
+			<return type="Rect2" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<param index="1" name="position" type="int" />
+			<description>Returns the item's rect in viewport space (before decoration insets). Mirrors Android's [b]LayoutManager.getDecoratedBoundsWithMargins[/b]. Used by ItemDecorations (dividers, spacing) and the item animator. Optional.</description>
+		</method>
+		<method name="_get_position_offset" qualifiers="virtual const">
+			<return type="int" />
+			<param index="0" name="position" type="int" />
+			<description>Returns the scroll offset at which the item starts, in content space (default 0). Mirrors Android's [b]LayoutManager.getPositionOffset[/b]. Drives [method RecyclerView.scroll_to_position] and the SnapHelpers. A wrong value misplaces scroll-to-position, so implement it whenever the item offsets are not uniform.</description>
+		</method>
+		<method name="_on_data_changed" qualifiers="virtual">
+			<return type="void" />
+			<description>Called when the adapter contents change, so cached layout state (e.g. a position table) can be invalidated before the next layout. Mirrors Android's [b]LayoutManager.onItemsChanged[/b]. Optional.</description>
+		</method>
+		<method name="_on_layout_children" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="recycler_view" type="RecyclerView" />
+			<param index="1" name="state" type="State" />
+			<description>[b]Required for a custom layout.[/b] Mirrors Android's [b]LayoutManager.onLayoutChildren[/b]: lay out every item visible at the current scroll offset and recycle the ones that left the viewport. Typical steps:
+
+[codeblock]
+func _on_layout_children(recycler_view, state) -> void:
+    var offset: int = recycler_view.get_scroll_offset()
+    var viewport: Vector2 = recycler_view.get_viewport_size()
+    var extent: int = recycler_view.get_item_extent(0)
+    var first := maxi(0, offset / extent)
+    var last := mini(get_item_count() - 1, (offset + int(viewport.y)) / extent)
+
+    # 1. Recycle holders that left the viewport.
+    for i in range(recycler_view.get_child_holder_count() - 1, -1, -1):
+        var holder = recycler_view.get_child_holder_at(i)
+        if holder.get_position() < first or holder.get_position() > last:
+            recycler_view.remove_item_view(holder)
+            recycler_view.recycle_view(holder, holder.get_position())
+
+    # 2. Fill the visible range (skip positions already in the tree).
+    for pos in range(first, last + 1):
+        var holder = _existing(recycler_view, pos)  # scan get_child_holder_at()
+        if holder == null:
+            holder = recycler_view.get_view_for_position(pos)  # obtain + bind
+            recycler_view.add_item_view(holder)
+        recycler_view.set_item_view_position(holder, Vector2(0, pos * extent - offset), Vector2(viewport.x, extent))
+[/codeblock]
+
+A script subclass that does not override it prints a warning and lays out nothing.</description>
+		</method>
 		<method name="get_content_size" qualifiers="const">
 			<return type="int" />
 			<param index="0" name="recycler_view" type="RecyclerView" />
-			<description>Returns the content size along the scroll axis. Base default is 0; the concrete managers compute it internally.</description>
+			<description>Returns the content size along the scroll axis. The base dispatches to [method _get_content_size] (default 0); the concrete managers compute it internally.</description>
 		</method>
 		<method name="get_item_count" qualifiers="const">
 			<return type="int" />
@@ -25,7 +96,7 @@ managers' row/column queries when you need geometry from a script.</description>
 		<method name="get_position_offset" qualifiers="const">
 			<return type="int" />
 			<param index="0" name="position" type="int" />
-			<description>Returns the item's starting scroll offset in content space. Base default is 0.</description>
+			<description>Returns the item's starting scroll offset in content space. The base dispatches to [method _get_position_offset] (default 0); the concrete managers compute it internally.</description>
 		</method>
 		<method name="get_recycler_view" qualifiers="const">
 			<return type="RecyclerView" />
@@ -39,8 +110,8 @@ managers' row/column queries when you need geometry from a script.</description>
 			<return type="void" />
 			<param index="0" name="reverse" type="bool" />
 			<description>Enables reverse layout: items are laid out from the trailing end (bottom for a vertical
-list). Combined with an initial scroll to the max offset this gives a chat list where
-position 0 sits at the bottom.</description>
+	list). Combined with an initial scroll to the max offset this gives a chat list where
+	position 0 sits at the bottom.</description>
 		</method>
 	</methods>
 </class>

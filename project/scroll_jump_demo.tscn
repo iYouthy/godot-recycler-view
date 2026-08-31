@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://bfpshvk84sx7t"]
+
+[ext_resource type="Script" uid="uid://bvssulrmoc2w7" path="res://scroll_jump_demo.gd" id="1_demo"]
+
+[node name="ScrollJumpDemo" type="VBoxContainer" unique_id=1721691171]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="InfoLabel" type="Label" parent="." unique_id=760021337]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="." unique_id=418498656]
+layout_mode = 2
+
+[node name="Jump100Button" type="Button" parent="Buttons" unique_id=842770126]
+unique_name_in_owner = true
+layout_mode = 2
+text = "瞬间跳 → 第 100 行"
+
+[node name="Smooth100Button" type="Button" parent="Buttons" unique_id=652375135]
+unique_name_in_owner = true
+layout_mode = 2
+text = "平滑滚 → 第 100 行"
+
+[node name="JumpTopButton" type="Button" parent="Buttons" unique_id=481668276]
+unique_name_in_owner = true
+layout_mode = 2
+text = "瞬间回顶"
+
+[node name="SmoothTopButton" type="Button" parent="Buttons" unique_id=1419299560]
+unique_name_in_owner = true
+layout_mode = 2
+text = "平滑回顶"
+
+[node name="StepButton" type="Button" parent="Buttons" unique_id=1900486602]
+unique_name_in_owner = true
+layout_mode = 2
+text = "小步 +1 行"
+
+[node name="Main" type="HBoxContainer" parent="." unique_id=1584684994]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecyclerView" type="RecyclerView" parent="Main" unique_id=790889915]
+item_extent = 40
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LogLabel" type="Label" parent="Main" unique_id=1370621591]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HintLabel" type="Label" parent="." unique_id=1473681243]
+layout_mode = 2
+text = "对比两种滚动 API 的 created 增量：正常应为 +0（视图被复用）。瞬间跳走大跳缓存复用，平滑滚走逐帧复用；操作完成后日志会记录各自的实际增量。"

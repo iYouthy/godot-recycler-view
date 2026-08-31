@@ -105,6 +105,8 @@ add_child(rv)
 | `horizontal_demo.tscn` | 水平列表 + 水平滚动条 |
 | `custom_scroll_bar_demo.tscn` | 继承 `RecyclerViewScrollBar` 的自定义滚动条 |
 | `lifecycle_demo.tscn` | Adapter 生命周期回调（attach / detach / recycled / 拒绝回收）+ 实时事件日志 |
+| `custom_layout_demo.tscn` | 在 GDScript 里继承 `LayoutManager` 自定义布局（波浪排布，含完整教学注释） |
+| `scroll_jump_demo.tscn` | 观察 `scroll_to_position` 与 `smooth_scroll_to_position` —— 两种滚动都不应产生新的视图 |
 | `nested_demo.tscn` | 嵌套 RecyclerView 联动滚动 |
 
 ## 文档
@@ -147,7 +149,7 @@ scons tests=yes && tests/bin/test_runner
 - `StaggeredGridLayoutManager` 没有 gap strategy。
 - `DefaultItemAnimator` 动画时长固定；自定义需继承 `ItemAnimator`。
 - `SnapHelper` 的 Android 钩子是 C++ 虚方法，脚本不可重写（用 `LinearSnapHelper` / `PagerSnapHelper`）。
-- `LayoutManager.get_content_size()` / `get_position_offset()` 在 GDScript 端返回基类默认值 0。
+- 自定义 `LayoutManager` 走脚本虚方法（`_on_layout_children` 等，见 `custom_layout_demo`）；Android 的 `scrollVerticallyBy` / `scrollHorizontallyBy` 两个钩子未接入（滚动统一由 RecyclerView 的 offset 空间管理，布局只需响应 offset 变化）。
 - state restoration（状态恢复）机制未移植；`AdapterDataObserver._on_state_restoration_policy_changed` 已注册但永不派发（没有 `set_state_restoration_policy` / 保存状态机制）。
 - 仅支持 LTR；`START` / `END` 方向位映射为左 / 右。
 

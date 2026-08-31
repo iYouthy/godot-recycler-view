@@ -1419,6 +1419,11 @@ void RecyclerView::layout_children() {
 		process_pending_updates();
 		m_state->set_item_count(m_adapter->get_item_count());
 		m_layout->set_recycler_view(this);
+		// Size the view cache to the visible set before recycling anything: a
+		// big jump then recycles the whole viewport into the cache without
+		// discarding holders, and the recycler's miss-overflow keeps the pool
+		// fed for the fill loop (port of Recycler.mViewCacheMax).
+		m_recycler->update_view_cache_size(m_children.size());
 		m_layout->on_layout_children(this, m_state.ptr());
 		if (has_updates && m_item_animator.is_valid()) {
 			dispatch_animations();

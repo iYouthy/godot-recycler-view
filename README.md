@@ -106,6 +106,8 @@ Open the `project/` folder in Godot and run any scene:
 | `horizontal_demo.tscn` | Horizontal list with a horizontal scroll bar |
 | `lifecycle_demo.tscn` | Adapter lifecycle callbacks (attach / detach / recycled / failed-to-recycle) with a live event log |
 | `custom_scroll_bar_demo.tscn` | A custom scroll bar subclassing `RecyclerViewScrollBar` |
+| `custom_layout_demo.tscn` | A GDScript-defined layout: subclass `LayoutManager` for a wave layout (full tutorial comments inside) |
+| `scroll_jump_demo.tscn` | Observe `scroll_to_position` vs `smooth_scroll_to_position` — both must move without fabricating views |
 | `nested_demo.tscn` | Nested RecyclerViews scrolling together |
 
 ## Documentation
@@ -174,7 +176,7 @@ clone. The significant differences, and how each one is handled:
 - `StaggeredGridLayoutManager` has no gap strategy.
 - `DefaultItemAnimator`'s durations are fixed; customize by subclassing `ItemAnimator`.
 - `SnapHelper`'s Android hooks are C++ virtuals, not script-overridable (use `LinearSnapHelper` / `PagerSnapHelper`).
-- `LayoutManager.get_content_size()` / `get_position_offset()` return their base default (0) from GDScript.
+- Custom `LayoutManager`s are script virtuals (`_on_layout_children` etc., see `custom_layout_demo`); Android's `scrollVerticallyBy` / `scrollHorizontallyBy` hooks are not wired (scrolling lives in the RecyclerView's shared offset space — a layout only reacts to offset changes).
 - State restoration is not ported; `AdapterDataObserver._on_state_restoration_policy_changed` is declared but never dispatched (there is no `set_state_restoration_policy` / saved-state mechanism).
 - Text is LTR only; `START` / `END` direction bits map to left / right.
 

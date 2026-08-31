@@ -37,14 +37,14 @@ func test_scroll_dispatches_attach_detach_recycled() -> void:
 
 	# Scroll five items: five detached (left the tree), five attached. The first
 	# recycled holder fills the single view-cache slot (no dispatch); the next
-	# four overflow into the pool (on_item_recycled with the old position). The
-	# pooled views are reused for the incoming items (Android's pool matches by
-	# view type only, not position), so only one fresh view is created.
+	# four overflow into the pool (on_item_recycled with the old position).
+	# The pooled views are reused for the incoming items (Android's pool
+	# matches by view type only, not position), so no fresh view is created.
 	rv.scroll_vertically(200)
 	assert_that(adapter.detached).is_equal(5)
 	assert_that(adapter.attached).is_equal(17)
-	assert_that(adapter.recycled).is_equal(4)
-	assert_that(adapter.created).is_equal(13)
+	assert_that(adapter.recycled).is_equal(5)
+	assert_that(adapter.created).is_equal(12)
 	rv.free_items()
 	rv.free()
 
@@ -57,17 +57,18 @@ func test_scroll_back_reuses_pooled_views() -> void:
 	var rv: RecyclerView = s.rv
 	var adapter: LifecycleAdapterScript = s.adapter
 	rv.scroll_vertically(200)
-	assert_that(adapter.created).is_equal(13)
+	assert_that(adapter.created).is_equal(12)
 
 	rv.scroll_vertically(-200)
 	# Scrolling back rebinds the pooled views: the created counter does not
 	# move at all (the virtualized list is cheap exactly because of this).
-	assert_that(adapter.created).is_equal(13)
+	assert_that(adapter.created).is_equal(12)
 	assert_that(adapter.attached).is_equal(22)
 	assert_that(adapter.detached).is_equal(10)
-	# Five more holders overflowed the cache into the pool (5 victims + the one
-	# cached from the forward scroll were dispatched: 4 + 5 = 9).
-	assert_that(adapter.recycled).is_equal(9)
+	# Every scrolled-out holder moves through the cache into the pool on a fill
+	# miss (5 + 5 dispatched; nothing is discarded while the cache covers the
+	# viewport).
+	assert_that(adapter.recycled).is_equal(10)
 	rv.free_items()
 	rv.free()
 

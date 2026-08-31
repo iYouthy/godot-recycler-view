@@ -56,7 +56,9 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(AdapterDataObserver);
 	GDREGISTER_CLASS(State);
 	GDREGISTER_CLASS(Recycler);
-	GDREGISTER_ABSTRACT_CLASS(LayoutManager);
+	// Not abstract since the virtuals gained default script-dispatching
+	// implementations: GDScript subclasses extend LayoutManager directly.
+	GDREGISTER_CLASS(LayoutManager);
 	GDREGISTER_CLASS(LinearLayoutManager);
 	GDREGISTER_CLASS(GridLayoutManager);
 	GDREGISTER_CLASS(StaggeredGridLayoutManager);

@@ -81,13 +81,16 @@ func test_attach_and_detach_fire_on_scroll() -> void:
 
 	adapter.events.clear()
 	rv.scroll_vertically(60)
-	# One item scrolled out (detached), one came in (attached).
-	assert_that(adapter.events).is_equal([["detached", 0], ["attached", 10]])
+	# One item scrolled out (detached), one came in. The scrolled-out holder 0
+	# fills the view cache, then the fill misses the cache for position 10 and
+	# moves the cached holder into the pool (Android's recycleCachedViewAt),
+	# dispatching on_item_recycled before it is bound to the new position.
+	assert_that(adapter.events).is_equal([["detached", 0], ["recycled", 0], ["attached", 10]])
 	rv.free_items()
 	rv.free()
 
 
-func test_cache_does_not_dispatch_recycled() -> void:
+func test_cache_overflow_to_pool_dispatches_recycled() -> void:
 	var setup := _make_setup()
 	var rv: RecyclerView = setup.rv
 	var adapter: CallbackAdapter = setup.adapter
@@ -95,36 +98,20 @@ func test_cache_does_not_dispatch_recycled() -> void:
 	rv.request_layout()
 	adapter.events.clear()
 
-	# The first scrolled-out holder fills the single view-cache slot: its data is
-	# kept for a possible in-place reuse, so no on_item_recycled (Android keeps
-	# cached views silent too).
-	rv.scroll_vertically(60)
-	assert_that(_positions(adapter.events, "recycled")).is_equal([])
-	rv.free_items()
-	rv.free()
-
-
-func test_recycled_fires_on_cache_overflow_with_position() -> void:
-	var setup := _make_setup()
-	var rv: RecyclerView = setup.rv
-	var adapter: CallbackAdapter = setup.adapter
-	adapter.count = 100
-	rv.request_layout()
-	adapter.events.clear()
-
-	# Scroll four items. Each recycle after the first pushes the previous cached
-	# holder into the pool, which dispatches on_item_recycled with the holder's
-	# old position still readable. Detach (leaving the tree) always precedes the
-	# recycled dispatch (entering the pool), matching Android's order.
+	# Every scrolled-out holder ends up in the pool through the cache overflow
+	# (the cache grows with the visible count, so no holder is discarded on a
+	# single-item scroll; the fill moves it to the pool, dispatching
+	# on_item_recycled with the old position still readable). Detach always
+	# precedes the recycled dispatch, matching Android's order.
 	rv.scroll_vertically(60)
 	rv.scroll_vertically(60)
 	rv.scroll_vertically(60)
 	rv.scroll_vertically(60)
 	assert_that(adapter.events).is_equal([
-		["detached", 0], ["attached", 10],
-		["detached", 1], ["recycled", 0], ["attached", 11],
-		["detached", 2], ["recycled", 1], ["attached", 12],
-		["detached", 3], ["recycled", 2], ["attached", 13],
+		["detached", 0], ["recycled", 0], ["attached", 10],
+		["detached", 1], ["recycled", 1], ["attached", 11],
+		["detached", 2], ["recycled", 2], ["attached", 12],
+		["detached", 3], ["recycled", 3], ["attached", 13],
 	])
 	rv.free_items()
 	rv.free()
@@ -164,9 +151,10 @@ func test_failed_to_recycle_force_recycles() -> void:
 
 	rv.scroll_vertically(60)
 	# The adapter forced the recycle: holder 0 left the tree despite being
-	# declared non-recyclable (it fills the cache slot, no recycled dispatch).
+	# declared non-recyclable, then moved from the cache into the pool on the
+	# fill miss (recycled dispatch) before being bound to position 10.
 	assert_that(adapter.failed).is_equal(1)
-	assert_that(adapter.events).is_equal([["detached", 0], ["attached", 10]])
+	assert_that(adapter.events).is_equal([["detached", 0], ["recycled", 0], ["attached", 10]])
 	assert_that(rv.get_child_holder_count()).is_equal(10)
 	var positions := []
 	for i in rv.get_child_holder_count():

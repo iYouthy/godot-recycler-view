@@ -11,6 +11,7 @@ void Recycler::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_adapter"), &Recycler::get_adapter);
 	ClassDB::bind_method(D_METHOD("set_view_cache_size", "size"), &Recycler::set_view_cache_size);
 	ClassDB::bind_method(D_METHOD("get_view_cache_size"), &Recycler::get_view_cache_size);
+	ClassDB::bind_method(D_METHOD("update_view_cache_size", "observed"), &Recycler::update_view_cache_size);
 	ClassDB::bind_method(D_METHOD("set_view_pool_size", "view_type", "max"), &Recycler::set_view_pool_size);
 	ClassDB::bind_method(D_METHOD("get_view_pool_size", "view_type"), &Recycler::get_view_pool_size);
 	ClassDB::bind_method(D_METHOD("get_view_for_position", "position"), &Recycler::get_view_for_position);
@@ -58,6 +59,37 @@ Ref<ViewHolder> Recycler::get_view_for_position(int p_position) {
 			m_adapter->bind_view_holder(cached, p_position);
 			return cached;
 		}
+	}
+
+	// 1.25 Cache overflow to the pool on a miss: the cache capacity grows with
+	// the visible count (see update_view_cache_size), so recycled holders fill
+	// the cache and would starve the pool. Each miss here moves the oldest
+	// cached holder into the pool instead (port of RecyclerView.Recycler's
+	// recycleCachedViewAt, dispatched the same way), keeping the pool fed for
+	// the fill loop. Big jumps take the fallback path below instead.
+	if (!m_cache_fallback && !m_cached_views.is_empty()) {
+		Ref<ViewHolder> victim = m_cached_views[0];
+		m_cached_views.remove_at(0);
+		if (m_adapter.is_valid()) {
+			m_adapter->on_view_recycled(victim);
+		}
+		victim->reset_internal();
+		const int vtype = victim->get_item_view_type();
+		if (m_pool.get_recycled_view_count(vtype) >= m_pool.get_max_recycled_views(vtype)) {
+			void *oldest = m_pool.get_oldest_recycled_view(vtype);
+			for (int i = 0; i < m_pool_holders.size(); i++) {
+				if (m_pool_holders[i].ptr() == oldest) {
+					Control *control = m_pool_holders[i]->get_control();
+					if (control != nullptr) {
+						memdelete(control);
+					}
+					m_pool_holders.remove_at(i);
+					break;
+				}
+			}
+		}
+		m_pool_holders.push_back(victim);
+		m_pool.put_recycled_view(victim.ptr(), vtype);
 	}
 
 	// 1.5 Cache fallback (big jumps only): a scroll-bar drag jumps the offset

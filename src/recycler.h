@@ -33,6 +33,13 @@ public:
 	// fresh view while the pool drains.
 	void set_view_cache_size(int p_size) { m_view_cache_max = p_size; }
 	int get_view_cache_size() const { return m_view_cache_max; }
+	// Grows the view cache to at least p_observed (the RecyclerView passes the
+	// number of holders currently in the tree after every layout). Port of
+	// RecyclerView.Recycler's mViewCacheMax = requested + prefetch-observed:
+	// with the cache sized to the viewport, a big jump recycles the whole
+	// visible set without discarding any holder, and the miss-overflow in
+	// get_view_for_position keeps the pool fed for the fill loop.
+	void update_view_cache_size(int p_observed) { m_view_cache_max = MAX(m_view_cache_max, p_observed); }
 
 	// Per-view-type recycled-pool capacity (default 5, Android's
 	// DEFAULT_MAX_SCRAP). Mirrors RecycledViewPool.setMaxRecycledViews.
