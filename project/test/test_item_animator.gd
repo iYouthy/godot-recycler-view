@@ -261,6 +261,45 @@ func test_rapid_followup_move_does_not_jump_to_end() -> void:
 	rv.free()
 
 
+func test_overflow_head_insert_does_not_fly_tail_to_head() -> void:
+	# Regression: once the list overflows the viewport, a head insert pushes the
+	# tail holder out of view, and the same cycle's fill used to re-attach that
+	# holder at position 0 (cache miss -> pool) while it still had a pre-update
+	# position record — the dispatch then animated it from its old tail slot all
+	# the way to the head ("the tail item flying to the top"). A holder recycled
+	# out of range must sit the cycle out in the changed scrap instead.
+	var s := await _make_setup()
+	var rv: RecyclerView = s.rv
+	var adapter: ValueAdapter = s.adapter
+	# 20 items overflow the 600px viewport (600 / 40 = 15 visible).
+	for i in 15:
+		adapter.items.append(i + 5)
+	rv.request_layout()
+	await get_tree().process_frame
+
+	adapter.items.insert(0, 99)
+	rv.notify_item_range_inserted(0, 1)
+	await get_tree().process_frame  # notify defers the layout to end of frame
+
+	# Every visible holder must stay within one item of its slot for the whole
+	# animation; a tail holder reused for the head would start a viewport away.
+	var frames := 0
+	while rv.get_item_animator().is_running() and frames < 2000:
+		for i in rv.get_child_holder_count():
+			var c: Control = rv.get_child_holder_at(i).get_control()
+			var slot := rv.get_child_holder_at(i).get_position() * 40
+			assert_that(absf(c.position.y - slot)).is_less_equal(40)
+		await get_tree().process_frame
+		frames += 1
+
+	# And the new head item settled in place, fully opaque.
+	var added: Control = _holder_by_text(rv, "99").get_control()
+	assert_that(int(added.position.y)).is_equal(0)
+	assert_that(added.modulate.a).is_greater(0.99)
+	rv.free_items()
+	rv.free()
+
+
 func test_remove_after_move_fades_in_place() -> void:
 	# Regression: an item that was mid-move when removed used to keep its move
 	# animation running; the re-queried target for a removed holder (position is

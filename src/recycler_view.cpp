@@ -1292,6 +1292,19 @@ void RecyclerView::recycle_view(const Ref<ViewHolder> &p_holder, int p_position)
 	if (m_item_animator.is_valid() && m_item_animator->is_animating(p_holder)) {
 		return;
 	}
+	// During an animated update layout (m_pre_positions holds the pre-update
+	// positions), a holder pushed out of the viewport must not re-enter the
+	// cache: the same cycle's fill could re-attach it at another position (a
+	// head insert takes the tail holder) and the dispatch would animate it
+	// from its old off-screen slot to the new one — the tail item flying to
+	// the top. Route it to the changed scrap instead (port of Android's
+	// changed-scrap): the fill only reuses a scrap holder whose position
+	// matches exactly, and unused scrap sinks to the pool after the layout
+	// (flush_scrap_to_pool), where later cycles reuse it normally.
+	if (m_item_animator.is_valid() && !m_pre_positions.is_empty()) {
+		m_recycler->scrap_view(p_holder);
+		return;
+	}
 	m_recycler->recycle_view(p_holder, p_position);
 }
 
