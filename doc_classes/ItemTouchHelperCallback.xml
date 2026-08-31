@@ -64,7 +64,7 @@ class Callback extends ItemTouchHelperCallback:
 		<method name="_get_swipe_velocity_threshold" qualifiers="virtual">
 			<return type="float" />
 			<param index="0" name="default" type="float" />
-			<description>Reserved hook for a swipe velocity threshold (default 800.0; not currently consulted).</description>
+			<description>Returns the maximum pointer velocity ItemTouchHelper ever reports, in pixels per second (default 800.0). Mirrors Android's [b]Callback.getSwipeVelocityThreshold[/b]: computed velocities are clamped to this range, so a diagonal fling whose axes both hit the cap is not treated as a swipe. Lower the value to accept diagonal swipes more easily; raise it to require straighter movement.</description>
 		</method>
 		<method name="_is_item_view_swipe_enabled" qualifiers="virtual">
 			<return type="bool" />

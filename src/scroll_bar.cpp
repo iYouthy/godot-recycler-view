@@ -65,6 +65,8 @@ void RecyclerViewScrollBar::set_hide_delay(float p_delay) {
 }
 
 void RecyclerViewScrollBar::on_scroll_changed() {
+	// A script override takes over entirely (see the hook's doc): it must
+	// queue_redraw() itself. Only the base fallback redraws automatically.
 	if (GDVIRTUAL_CALL(_on_scroll_changed)) {
 		return;
 	}

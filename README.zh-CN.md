@@ -148,7 +148,7 @@ scons tests=yes && tests/bin/test_runner
 - `DefaultItemAnimator` 动画时长固定；自定义需继承 `ItemAnimator`。
 - `SnapHelper` 的 Android 钩子是 C++ 虚方法，脚本不可重写（用 `LinearSnapHelper` / `PagerSnapHelper`）。
 - `LayoutManager.get_content_size()` / `get_position_offset()` 在 GDScript 端返回基类默认值 0。
-- `Adapter._on_item_recycled` 等已声明但暂未调用。
+- state restoration（状态恢复）机制未移植；`AdapterDataObserver._on_state_restoration_policy_changed` 已注册但永不派发（没有 `set_state_restoration_policy` / 保存状态机制）。
 - 仅支持 LTR；`START` / `END` 方向位映射为左 / 右。
 
 ## License

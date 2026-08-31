@@ -42,9 +42,14 @@ class TouchCallback extends ItemTouchHelperCallback:
 	var swipe_flags := ItemTouchHelper.LEFT
 	var move_count := 0
 	var swipe_count := 0
+	var velocity_threshold_consulted := 0
 
 	func _get_movement_flags(holder: ViewHolder) -> int:
 		return ItemTouchHelper.make_movement_flags(drag_flags, swipe_flags)
+
+	func _get_swipe_velocity_threshold(default: float) -> float:
+		velocity_threshold_consulted += 1
+		return default
 
 	func _on_move(recycler_view, dragged: ViewHolder, target: ViewHolder) -> bool:
 		move_count += 1
@@ -192,6 +197,32 @@ func test_swipe_left_deletes() -> void:
 	assert_that(adapter.swiped_dir).is_equal(ItemTouchHelper.LEFT)
 	assert_that(adapter.items.size()).is_equal(9)
 	assert_that(adapter.items[0]).is_equal(1)  # item 0 removed
+	rv.free_items()
+	rv.free()
+
+
+# The swipe commit consults _get_swipe_velocity_threshold: ItemTouchHelper
+# clamps computed velocities to it (Android's
+# VelocityTracker.computeCurrentVelocity maxVelocity / Callback.getSwipeVelocityThreshold)
+# before comparing them against the escape velocity.
+func test_swipe_consults_velocity_threshold() -> void:
+	var s = await _make_setup()
+	var rv: RecyclerView = s.rv
+	var adapter: TouchAdapter = s.adapter
+	var callback: TouchCallback = s.callback
+
+	_press(rv, Vector2(190, 20))
+	await get_tree().process_frame
+	_motion(rv, Vector2(100, 20), true)  # 1st: below threshold, no selection
+	await get_tree().process_frame
+	_motion(rv, Vector2(10, 20), true)  # 2nd: past threshold, selects the swipe
+	await get_tree().process_frame
+	_motion(rv, Vector2(0, 20), true)  # 3rd: records a second velocity sample
+	await get_tree().process_frame
+	_release(rv, Vector2(0, 20))
+
+	assert_that(await _wait_swiped(adapter)).is_true()
+	assert_that(callback.velocity_threshold_consulted).is_greater_equal(1)
 	rv.free_items()
 	rv.free()
 

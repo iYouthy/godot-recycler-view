@@ -4,6 +4,7 @@
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/core/error_macros.hpp>
+#include <godot_cpp/core/math.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 namespace godot {
@@ -511,7 +512,13 @@ float ItemTouchHelper::get_velocity(bool p_horizontal) const {
 	if (dt <= 0.0) {
 		return 0.0f;
 	}
-	return dp / (float)(dt / 1000.0);
+	float velocity = dp / (float)(dt / 1000.0);
+	// Android computes velocities with VelocityTracker.computeCurrentVelocity(
+	// PIXELS_PER_SECOND, Callback.getSwipeVelocityThreshold(...)): the cap keeps
+	// a diagonal fling from counting as a swipe when both axes exceed it. Apply
+	// the same clamp here so overriding _get_swipe_velocity_threshold takes effect.
+	const float cap = m_callback->get_swipe_velocity_threshold(DEFAULT_MAX_SWIPE_VELOCITY);
+	return Math::clamp(velocity, -cap, cap);
 }
 
 int ItemTouchHelper::swipe_if_necessary() {

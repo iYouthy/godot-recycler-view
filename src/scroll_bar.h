@@ -20,7 +20,9 @@ class RecyclerViewScrollBar : public Control {
 protected:
 	static void _bind_methods();
 
-	// GDScript hook: called on every scroll/layout.
+	// GDScript hook: called on every scroll/layout. Overriding it takes over
+	// entirely — the base class no longer calls queue_redraw(), so the script
+	// side must redraw itself.
 	GDVIRTUAL0(_on_scroll_changed);
 
 public:

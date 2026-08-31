@@ -16,7 +16,7 @@ layout direction.</description>
 	<methods>
 		<method name="_on_scroll_changed" qualifiers="virtual">
 			<return type="void" />
-			<description>Optional virtual called on every scroll / layout; override to refresh a custom bar.</description>
+			<description>Optional virtual called on every scroll / layout; override to refresh a custom bar. When overridden the base class does not redraw automatically: call [code]queue_redraw()[/code] yourself (or draw in [code]_draw[/code] and queue it here).</description>
 		</method>
 		<method name="bind_to">
 			<return type="void" />

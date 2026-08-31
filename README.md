@@ -175,7 +175,7 @@ clone. The significant differences, and how each one is handled:
 - `DefaultItemAnimator`'s durations are fixed; customize by subclassing `ItemAnimator`.
 - `SnapHelper`'s Android hooks are C++ virtuals, not script-overridable (use `LinearSnapHelper` / `PagerSnapHelper`).
 - `LayoutManager.get_content_size()` / `get_position_offset()` return their base default (0) from GDScript.
-- `Adapter._on_item_recycled` and friends are declared but not yet invoked.
+- State restoration is not ported; `AdapterDataObserver._on_state_restoration_policy_changed` is declared but never dispatched (there is no `set_state_restoration_policy` / saved-state mechanism).
 - Text is LTR only; `START` / `END` direction bits map to left / right.
 
 ## License
