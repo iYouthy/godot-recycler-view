@@ -21,6 +21,7 @@ Core list:
 - **Adapter / ListAdapter** — mandatory `_create_item` / `_bind_item` / `_get_item_count`; `ListAdapter.submit_list()` diffs automatically.
 - **LayoutManagers** — `LinearLayoutManager`, `GridLayoutManager` (with `SpanSizeLookup`), `StaggeredGridLayoutManager` (masonry), vertical or horizontal, `reverse_layout`.
 - **Variable item extents and multiple view types.**
+- **`auto_measure_items` content-sized items** — item heights come from the item control itself (wrap_content semantics); a `SIZE_EXPAND` root fills the viewport (match_parent). A `RichTextLabel` with fit_content works out of the box.
 
 Data updates:
 - `notify_item_*` incremental updates (insert / remove / move / change), queued and applied at frame end.
@@ -108,6 +109,7 @@ Open the `project/` folder in Godot and run any scene:
 | `custom_scroll_bar_demo.tscn` | A custom scroll bar subclassing `RecyclerViewScrollBar` |
 | `custom_layout_demo.tscn` | A GDScript-defined layout: subclass `LayoutManager` for a wave layout (full tutorial comments inside) |
 | `scroll_jump_demo.tscn` | Observe `scroll_to_position` vs `smooth_scroll_to_position` — both must move without fabricating views |
+| `rich_text_demo.tscn` | `auto_measure_items` content-sized items: message heights follow the text, a `SIZE_EXPAND` banner fills the viewport, toggle to compare |
 | `nested_demo.tscn` | Nested RecyclerViews scrolling together |
 
 ## Documentation
@@ -147,7 +149,12 @@ clone. The significant differences, and how each one is handled:
   laid out by the `LayoutManager`. Here an item is a `Control` wrapped in a `ViewHolder`; the
   layout managers position it with absolute rects and the RecyclerView clips to its viewport.
   There is no measure/layout traversal — you give items a size through `_get_item_extent` /
-  `set_item_extent`.
+  `set_item_extent`. For content-driven sizes (Android's `wrap_content`), enable
+  `auto_measure_items`: the measurement hooks into the layout funnel and reads the root
+  control's combined minimum size (clamped by its combined maximum size); a `SIZE_EXPAND` root
+  takes the viewport size instead (Android's `match_parent`). Unmeasured regions use
+  `item_extent` as an estimate and refine as they are measured; `scroll_to_position`
+  re-anchors to the exact target once the extents settle.
 - **Synchronous layout and diffing.** Android's `requestLayout()` is deferred to the next
   traversal and `ListAdapter.submitList()` diffs on a background thread. Here `request_layout()`
   runs the layout immediately and `submit_list()` diffs synchronously, so a call in the same

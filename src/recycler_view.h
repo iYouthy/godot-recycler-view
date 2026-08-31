@@ -23,6 +23,8 @@
 #include <godot_cpp/variant/rect2.hpp>
 #include <godot_cpp/variant/vector4.hpp>
 
+#include <map>
+
 namespace godot {
 
 // Port of RecyclerView (minimal hub). A Control that lays out items provided by
@@ -174,6 +176,17 @@ public:
 	// adapter's variable extent, or the default item extent when not provided.
 	int get_item_extent(int p_position) const;
 
+	// Content-driven item sizes (off by default). When enabled, each item's
+	// extent along the scroll axis is measured from the item control itself
+	// instead of the static item extent: the root control's combined minimum
+	// size decides the slot (Android's wrap_content), clamped by its combined
+	// maximum size when one is declared, and a root control with SIZE_EXPAND
+	// along the scroll axis fills the viewport (Android's match_parent).
+	// Measured extents are cached by position and re-measured after any data
+	// change. While disabled the static extent path is completely unchanged.
+	void set_auto_measure_items(bool p_enabled);
+	bool get_auto_measure_items() const { return m_auto_measure_items; }
+
 	// Prefetch toggle (default on): after a layout, holders for the positions
 	// just past the viewport are pre-created into the recycled pool.
 	void set_prefetch_enabled(bool p_enabled);
@@ -259,7 +272,81 @@ private:
 	// Prefetch: after a layout, pre-creates holders for the positions just past
 	// the viewport in the current scroll direction into the recycled pool.
 	void prefetch_adjacent();
+	// Prefetch + measure: with auto-measure on, creates/binds the holder for a
+	// position just past the viewport, temporarily attaches it to measure at
+	// the layout width, and returns it to the recycler. The measurement lands
+	// in the extent cache before the row scrolls into view, so entering the
+	// viewport does not change the offset table — a change there would move
+	// every visible row (scrolling the other way visibly jitters).
+	void prefetch_and_measure(int p_position);
 	bool try_start_fling(float p_velocity);
+
+	// Auto-measure (Android wrap_content / match_parent): measures the item's
+	// control at the width the layout assigns it and caches the result by
+	// position (0 = not measured, sized to the item count). Entries are
+	// invalidated narrowly: update ops shift the array (insert/remove/move)
+	// and zero the changed range (update); full data-set changes and
+	// decoration changes clear everything.
+	int measure_item_extent(const Ref<ViewHolder> &p_holder, int p_position, float p_width);
+	// Shifts the measured-extent array with the pending update ops: ADD
+	// inserts zeros (new rows are unmeasured), REMOVE drops the range, MOVE
+	// moves the value, UPDATE zeroes the range so the next layout re-measures
+	// the changed rows only.
+	void offset_measured_extents_for_ops(const Vector<UpdateOp> &p_ops);
+	void clear_measured_extents();
+	// Presets the cross-axis size of a control and, recursively, of its
+	// children (fill semantics: children span their container's width), and
+	// invalidates each control's minimum-size cache. Used by auto-measure so
+	// width-sensitive content (fit_content text) shapes at the final layout
+	// width even inside containers that have not been laid out yet — without
+	// it, a RichTextLabel inside a VBox would shape at its initial 0 width and
+	// report one line per character.
+	void preset_item_cross_size(Control *p_control, float p_cross, bool p_vertical);
+	// Re-anchors the scroll offset to the pending scroll target once the
+	// measured extents settle (port of Android's mPendingScrollPosition).
+	// Returns true when the offset moved (the layout should run one more pass).
+	bool correct_pending_scroll_target();
+	bool m_auto_measure_items = false;
+	Vector<int> m_measured_extents;
+	// Parallel to m_measured_extents: true where the measured extent came from
+	// a match_parent (SIZE_EXPAND) row. Only those depend on the viewport
+	// height, so a pure height change invalidates just them, while wrap_content
+	// rows keep their measurements (their height depends on the width only).
+	Vector<bool> m_measured_expand_flags;
+	// Last size seen by NOTIFICATION_RESIZED, to distinguish width changes
+	// (every row's wrap width changes -> remeasure everything) from pure
+	// height changes (only match_parent rows are viewport-derived).
+	Size2 m_last_resize_size = Size2(-1.0f, -1.0f);
+	// Adaptive per-view-type estimates for unmeasured rows: the running mean
+	// of measured wrap_content extents for that view type. The mean (not an
+	// EMA) is what keeps the estimate stable for alternating row heights —
+	// an EMA oscillates between the two heights forever, and every wiggle
+	// moves the offset table of the unmeasured rows (and the scroll bar's
+	// thumb) with it. Unmeasured rows fall back to this instead of the fixed
+	// item_extent, so a row entering the viewport changes the table as little
+	// as possible. match_parent rows never update it (they would pollute it
+	// with the viewport size).
+	struct ExtentEstimate {
+		int sum = 0;
+		int count = 0;
+		int value = 0;
+		// True once a match_parent (SIZE_EXPAND) row measured for this view
+		// type: such rows are viewport-derived, so their unmeasured estimate
+		// is the live viewport size (see get_item_extent), not the mean.
+		bool is_expand = false;
+	};
+	std::map<int, ExtentEstimate> m_extent_estimates;
+	// Scroll target set by scroll_to_position / smooth_scroll_to_position and
+	// re-anchored after the measured extents settle; -1 when nothing is pending.
+	int m_pending_scroll_target = -1;
+	// The re-anchor's target offset from the previous correction pass. The
+	// target is only considered reached once it is both in place and unchanged
+	// across two passes: measured extents refine while rows enter the
+	// viewport, so a single-pass match can be against a table that changes a
+	// moment later (the list would then jump again as the estimate refines).
+	int m_last_correct_raw = -1;
+	// Bounded re-runs for the auto-measure convergence loop.
+	static constexpr int MAX_AUTO_MEASURE_PASSES = 4;
 
 	// Nested scroll: cascade forwarding and ancestor lookup.
 	RecyclerView *find_ancestor_recycler_view() const;

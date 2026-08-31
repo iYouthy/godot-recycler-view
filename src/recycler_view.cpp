@@ -76,6 +76,8 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_vertical_wheel_scrolls_horizontal"), &RecyclerView::get_vertical_wheel_scrolls_horizontal);
 	ClassDB::bind_method(D_METHOD("set_item_extent", "size"), &RecyclerView::set_item_extent);
 	ClassDB::bind_method(D_METHOD("get_default_item_extent"), &RecyclerView::get_default_item_extent);
+	ClassDB::bind_method(D_METHOD("set_auto_measure_items", "enabled"), &RecyclerView::set_auto_measure_items);
+	ClassDB::bind_method(D_METHOD("get_auto_measure_items"), &RecyclerView::get_auto_measure_items);
 	ClassDB::bind_method(D_METHOD("set_prefetch_enabled", "enabled"), &RecyclerView::set_prefetch_enabled);
 	ClassDB::bind_method(D_METHOD("get_prefetch_enabled"), &RecyclerView::get_prefetch_enabled);
 	ClassDB::bind_method(D_METHOD("get_item_extent", "position"), &RecyclerView::get_item_extent);
@@ -125,6 +127,7 @@ void RecyclerView::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "adapter", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_adapter", "get_adapter");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "layout", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_layout", "get_layout");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_extent"), "set_item_extent", "get_default_item_extent");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_measure_items"), "set_auto_measure_items", "get_auto_measure_items");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical_wheel_scrolls_horizontal"), "set_vertical_wheel_scrolls_horizontal", "get_vertical_wheel_scrolls_horizontal");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_bar_auto_hide"), "set_scroll_bar_auto_hide", "get_scroll_bar_auto_hide");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_bar_hide_delay"), "set_scroll_bar_hide_delay", "get_scroll_bar_hide_delay");
@@ -163,10 +166,51 @@ void RecyclerView::_notification(int p_what) {
 		case NOTIFICATION_READY:
 			// _process drives the fling and the drag-sample clock.
 			set_process(true);
+			if (m_auto_measure_items) {
+				// A layout that ran before this RV entered the tree measured
+				// items off-tree (min/max cache invalidation is a no-op until
+				// then) and kept the estimates. Re-layout now so the tree-side
+				// measurements take over.
+				defer_layout();
+			}
 			break;
-		case NOTIFICATION_RESIZED:
+		case NOTIFICATION_RESIZED: {
+			// Auto-measure: a width change re-wraps every row, so all cached
+			// measurements go stale. A pure height change does not touch
+			// wrap_content rows (their height depends on the width only) — only
+			// match_parent rows are viewport-derived and must re-measure.
+			// Keeping the wrap_content measurements is what stops the list
+			// from re-measuring everything (and visibly jittering) while it
+			// scrolls after a resize.
+			const Size2 size = get_size();
+			const bool width_changed = size.x != m_last_resize_size.x;
+			const bool height_changed = size.y != m_last_resize_size.y;
+			m_last_resize_size = size;
+			if (m_auto_measure_items && (width_changed || height_changed)) {
+				if (width_changed) {
+					clear_measured_extents();
+				} else if (!m_measured_expand_flags.is_empty()) {
+					for (int i = 0; i < m_measured_extents.size(); i++) {
+						if (m_measured_expand_flags[i]) {
+							m_measured_extents.write[i] = 0;
+						}
+					}
+				}
+				// Dropped measurements must rebuild the offset table. Without
+				// this, a layout that ran before (e.g. the previous frame of a
+				// window drag) left the table clean, the table keeps the stale
+				// values, and the re-measured rows overflow their slots: with
+				// a growing viewport, a match_parent row measures taller than
+				// the stale table says and overlaps the row below it.
+				// Guard: a scene node can hit RESIZED (container layout) before
+				// set_layout ran — the loader crash this guard prevents.
+				if (m_layout.is_valid()) {
+					m_layout->on_data_changed();
+				}
+			}
 			layout_children();
 			break;
+		}
 	}
 }
 
@@ -840,6 +884,13 @@ int RecyclerView::target_offset_for_position(int p_position) {
 }
 
 void RecyclerView::scroll_to_position(int p_position) {
+	if (m_auto_measure_items) {
+		// The offset table may still hold estimates for the target's region;
+		// remember the target so the layout re-anchors once the measured
+		// extents settle (port of Android's mPendingScrollPosition).
+		m_pending_scroll_target = p_position;
+		m_last_correct_raw = -1;
+	}
 	if (m_layout.is_valid() && m_layout->can_scroll_horizontally()) {
 		set_scroll_offset_horizontal(target_offset_for_position(p_position));
 	} else {
@@ -848,6 +899,12 @@ void RecyclerView::scroll_to_position(int p_position) {
 }
 
 void RecyclerView::smooth_scroll_to_position(int p_position, double p_duration) {
+	if (m_auto_measure_items) {
+		// Same pending target as scroll_to_position; corrected once the settle
+		// animation finishes (see advance_settle), never mid-flight.
+		m_pending_scroll_target = p_position;
+		m_last_correct_raw = -1;
+	}
 	smooth_scroll_to(target_offset_for_position(p_position), p_duration);
 }
 
@@ -876,6 +933,11 @@ void RecyclerView::advance_settle(double p_delta) {
 	}
 	if (!m_settle_active) {
 		set_scroll_state(SCROLL_STATE_IDLE);
+		// Auto-measure: the animated target was computed from estimates; once
+		// the measured extents settle, re-anchor to the exact target (the
+		// pending target set by smooth_scroll_to_position). This runs outside
+		// any layout pass, so set_scroll_offset inside corrects and re-lays out.
+		correct_pending_scroll_target();
 	}
 }
 
@@ -1055,6 +1117,26 @@ void RecyclerView::dispatch_animations() {
 
 void RecyclerView::set_adapter(const Ref<Adapter> &p_adapter) {
 	detach_from_adapter();
+	// A new adapter owns different data and creates different views: the
+	// attached holders belong to the old adapter and would keep showing its
+	// content (the fill loop cannot re-create them — their positions are
+	// taken). Recycle the attached holders and drop every cached/pooled view
+	// so the new adapter starts from an empty Recycler (Android's setAdapter
+	// removes all views and clears the Recycler). Any auto-measured extents
+	// are invalidated by mark_data_changed below.
+	if (m_item_animator.is_valid()) {
+		m_item_animator->clear();
+	}
+	for (int i = m_children.size() - 1; i >= 0; i--) {
+		const Ref<ViewHolder> holder = m_children[i];
+		remove_item_view(holder);
+		m_recycler->recycle_view(holder, holder->get_position());
+	}
+	m_recycler->free_all_views();
+	// The measured extents belong to the old adapter's content and views;
+	// drop them (mark_data_changed no longer clears the cache wholesale).
+	clear_measured_extents();
+	m_extent_estimates.clear();
 	m_adapter = p_adapter;
 	attach_to_adapter();
 	mark_data_changed();
@@ -1100,6 +1182,10 @@ void RecyclerView::notify_item_moved(int p_from_position, int p_to_position) {
 
 void RecyclerView::notify_data_changed() {
 	m_adapter_helper->clear();
+	// A full data-set change makes every position unknown: drop all measured
+	// extents (incremental notify_* ops shift the array instead, see
+	// process_pending_updates).
+	clear_measured_extents();
 	mark_data_changed();
 	defer_layout();
 }
@@ -1110,9 +1196,78 @@ void RecyclerView::mark_data_changed() {
 	}
 }
 
+void RecyclerView::clear_measured_extents() {
+	if (!m_measured_extents.is_empty()) {
+		m_measured_extents.fill(0);
+	}
+	if (!m_measured_expand_flags.is_empty()) {
+		m_measured_expand_flags.fill(false);
+	}
+}
+
+void RecyclerView::offset_measured_extents_for_ops(const Vector<UpdateOp> &p_ops) {
+	if (m_measured_extents.is_empty()) {
+		return;
+	}
+	for (int i = 0; i < p_ops.size(); i++) {
+		const UpdateOp &op = p_ops[i];
+		switch (op.cmd) {
+			case UpdateOp::ADD: {
+				for (int k = 0; k < op.item_count; k++) {
+					m_measured_extents.insert(op.position_start, 0);
+					m_measured_expand_flags.insert(op.position_start, false);
+				}
+				break;
+			}
+			case UpdateOp::REMOVE: {
+				for (int k = 0; k < op.item_count; k++) {
+					m_measured_extents.remove_at(op.position_start);
+					m_measured_expand_flags.remove_at(op.position_start);
+				}
+				break;
+			}
+			case UpdateOp::MOVE: {
+				const int value = m_measured_extents[op.position_start];
+				const bool expand = m_measured_expand_flags[op.position_start];
+				m_measured_extents.remove_at(op.position_start);
+				m_measured_expand_flags.remove_at(op.position_start);
+				m_measured_extents.insert(op.item_count, value);
+				m_measured_expand_flags.insert(op.item_count, expand);
+				break;
+			}
+			case UpdateOp::UPDATE: {
+				for (int k = op.position_start; k < op.position_start + op.item_count; k++) {
+					if (k >= 0 && k < m_measured_extents.size()) {
+						m_measured_extents.write[k] = 0;
+						m_measured_expand_flags.write[k] = false;
+					}
+				}
+				// The changed rows' content (and thus height profile) may be
+				// different: drop the historical estimates so they rebuild
+				// from the re-measured rows.
+				m_extent_estimates.clear();
+				break;
+			}
+			default:
+				break;
+		}
+	}
+}
+
 void RecyclerView::set_item_extent(int p_size) {
 	m_item_extent = p_size;
 	mark_data_changed();
+}
+
+void RecyclerView::set_auto_measure_items(bool p_enabled) {
+	if (m_auto_measure_items == p_enabled) {
+		return;
+	}
+	m_auto_measure_items = p_enabled;
+	clear_measured_extents();
+	m_extent_estimates.clear();
+	mark_data_changed();
+	defer_layout();
 }
 
 void RecyclerView::detach_from_adapter() {
@@ -1190,12 +1345,38 @@ void RecyclerView::set_item_view_position(const Ref<ViewHolder> &p_holder, const
 	if (control == nullptr) {
 		return;
 	}
+	// Auto-measure: the slot extent is decided by the item's content instead of
+	// the static item extent. Hooked here because every layout manager (C++ or
+	// script) funnels its fill through this call — the width is already fixed,
+	// and the control is inside the tree (correct theme/fonts, and the min/max
+	// cache invalidation is a no-op off-tree). The result is cached by position
+	// and kept while the holder scrolls away and back (same position, same
+	// content); any data change clears the cache and the next layout re-measures.
+	const int pos = p_holder->get_position();
+	if (m_auto_measure_items && pos >= 0 && pos < (int)m_measured_extents.size() && m_measured_extents[pos] <= 0) {
+		const bool horizontal = m_layout.is_valid() && m_layout->can_scroll_horizontally();
+		const int before = get_item_extent(pos);
+		const int measured = measure_item_extent(p_holder, pos, horizontal ? p_size.y : p_size.x);
+		if (measured > 0) {
+			// -1 (<= 0) means the measurement ran off-tree and is unreliable
+			// (see measure_item_extent): keep the estimate, the enter-tree
+			// layout re-measures for real.
+			m_measured_extents.write[pos] = measured;
+			if (measured != before) {
+				// The offset table was built with the estimate; the measured
+				// value differs, so invalidate the table and run the layout
+				// once more.
+				m_layout->on_data_changed();
+				m_layout_requested_again = true;
+			}
+		}
+	}
 	// Inset the item by the decorations' accumulated offsets so dividers/spacing
 	// show in the gaps. Layout managers work with the uninflated geometry. Clamp
 	// the size to zero so an offset larger than the item's extent can't collapse
 	// the control into a negative size; spacing wider than the item must instead
 	// be added to the reported extent (item height + gap) and offset back here.
-	const Vector4 insets = get_item_insets(p_holder->get_position());
+	const Vector4 insets = get_item_insets(pos);
 	const Vector2 final_pos = p_pos + Vector2(insets.x, insets.y);
 	const Vector2 final_size = Vector2(
 			MAX(0.0f, p_size.x - (insets.x + insets.z)),
@@ -1204,16 +1385,158 @@ void RecyclerView::set_item_view_position(const Ref<ViewHolder> &p_holder, const
 	control->set_size(final_size);
 }
 
+// Port of Android's wrap_content / match_parent measurement. The item's
+// control is measured at the width the layout assigns it (text wrapping
+// depends on width), with the combined min/max caches explicitly invalidated
+// first — set_size only emits RESIZED, which does not invalidate them, and
+// both invalidation calls require the control to be inside the tree (the
+// measurement point above guarantees that):
+//   - default (wrap_content): extent = content size along the scroll axis
+//     (combined minimum size), clamped by the combined maximum size when the
+//     item declares one (custom_maximum_size or a script _get_maximum_size);
+//   - SIZE_EXPAND on the root control along the scroll axis (match_parent):
+//     extent = the RecyclerView viewport, so the control spans it.
+// Decoration insets live outside the control (set_item_view_position insets
+// the slot), so they are added to the returned extent.
+int RecyclerView::measure_item_extent(const Ref<ViewHolder> &p_holder, int p_position, float p_width) {
+	Control *control = p_holder->get_control();
+	if (control == nullptr) {
+		return m_item_extent;
+	}
+	// Off-tree measurements are unreliable: the min/max cache invalidation is
+	// a no-op until the control enters the tree, so the caches can hold values
+	// shaped at a wrong width. Return -1 (not cached; the estimate stands) and
+	// let the enter-tree layout re-measure under a real tree.
+	if (!control->is_inside_tree()) {
+		return -1;
+	}
+	const bool vertical = m_layout.is_null() || m_layout->can_scroll_vertically();
+	const Vector4 insets = get_item_insets(p_position);
+	const float avail = vertical ? p_width - insets.x - insets.z : p_width - insets.y - insets.w;
+	// Fix the cross-axis size first so wrapping/shaping use the final width,
+	// then propagate it through the item's subtree: a container's minimum size
+	// sums its children's, and a child's minimum is width-sensitive (a
+	// fit_content RichTextLabel shapes at its current width — 0 before the
+	// container lays out, which would inflate the measurement to one line per
+	// character). preset_item_cross_size also invalidates each control's
+	// min-size cache, since update_minimum_size only walks upward and a stale
+	// child cache would survive and feed the container's sum.
+	preset_item_cross_size(control, avail, vertical);
+	// The combined maximum size (custom_maximum_size / a script
+	// _get_maximum_size override) only exists on newer engines (4.5+); query it
+	// dynamically so the extension still runs on older ones without the limit.
+	float limit = -1.0f;
+	if (control->has_method("get_combined_maximum_size")) {
+		control->call("update_maximum_size");
+		const Vector2 max_size = (Vector2)control->call("get_combined_maximum_size");
+		limit = vertical ? max_size.y : max_size.x;
+	}
+	const float content = vertical ? control->get_combined_minimum_size().y : control->get_combined_minimum_size().x;
+	int h;
+	const BitField<Control::SizeFlags> flags = vertical ? control->get_v_size_flags() : control->get_h_size_flags();
+	const bool is_expand = flags.has_flag(Control::SIZE_EXPAND);
+	if (is_expand) {
+		// match_parent: the slot is the whole viewport; the control itself then
+		// spans the viewport minus the decoration insets.
+		h = (int)(vertical ? get_viewport_size().y : get_viewport_size().x);
+	} else {
+		// wrap_content: ceil so a fractional content height never clips.
+		h = (int)Math::ceil(content);
+		// Adaptive per-view-type estimate: the running mean of measured
+		// wrap_content extents for this view type. Skipped for match_parent
+		// rows, which would pollute it with the viewport size. Unmeasured
+		// rows fall back to it, so a row entering the viewport shifts the
+		// offset table as little as possible.
+		const int type = p_holder->get_item_view_type();
+		ExtentEstimate &est = m_extent_estimates[type];
+		est.sum += h;
+		est.count++;
+		est.value = est.sum / est.count;
+	}
+	// Record the expand flag (match_parent rows are viewport-derived and must
+	// re-measure on a pure height change; wrap_content rows keep their values).
+	if (p_position >= 0 && p_position < m_measured_expand_flags.size()) {
+		m_measured_expand_flags.write[p_position] = is_expand;
+	}
+	// Remember the view type's expand-ness for the unmeasured estimate.
+	{
+		ExtentEstimate &est = m_extent_estimates[p_holder->get_item_view_type()];
+		est.is_expand = is_expand;
+	}
+	if (limit >= 0.0f && h > (int)limit) {
+		h = (int)limit;
+	}
+	h += (int)(vertical ? (insets.y + insets.w) : (insets.x + insets.z));
+	return MAX(h, 0);
+}
+
+void RecyclerView::preset_item_cross_size(Control *p_control, float p_cross, bool p_vertical) {
+	const Size2 current = p_control->get_size();
+	p_control->set_size(p_vertical ? Vector2(p_cross, current.y) : Vector2(current.x, p_cross));
+	// update_minimum_size invalidates upward only; a child cache that stays
+	// valid would be returned stale by the parent's minimum-size sum. It is a
+	// no-op off-tree, so this pass must run inside the tree (it does: the
+	// measurement hooks into set_item_view_position).
+	p_control->update_minimum_size();
+	for (int i = 0; i < p_control->get_child_count(); i++) {
+		Control *child = Object::cast_to<Control>(p_control->get_child(i));
+		if (child != nullptr && !child->is_set_as_top_level()) {
+			preset_item_cross_size(child, p_cross, p_vertical);
+		}
+	}
+}
+
+bool RecyclerView::correct_pending_scroll_target() {
+	if (m_pending_scroll_target < 0 || m_settle_active || !m_layout.is_valid()) {
+		return false;
+	}
+	const bool h = m_layout->can_scroll_horizontally();
+	// The target's leading edge can lie past the maximum scroll offset (the
+	// last item is shorter than the viewport, so its start is beyond
+	// content - viewport). Clamp the way set_scroll_offset does, or the
+	// re-anchor would never settle: it would re-apply a clamped offset every
+	// layout pass and pin the list at the end, swallowing user drags.
+	const int max = h ? get_max_scroll_offset_horizontal() : get_max_scroll_offset();
+	const int raw = target_offset_for_position(m_pending_scroll_target);
+	const int target = MIN(raw, max);
+	const int current = h ? m_scroll_offset_h : m_scroll_offset;
+	// Reached only when the target is in place and stable across two passes:
+	// measured extents refine while rows enter the viewport, so a single-pass
+	// match can be against a table that changes a moment later (the estimate
+	// components move as rows measure, and the list would jump again).
+	if (target == current && m_last_correct_raw == raw) {
+		m_pending_scroll_target = -1;
+		m_last_correct_raw = -1;
+		return false;
+	}
+	m_last_correct_raw = raw;
+	if (target != current) {
+		if (h) {
+			set_scroll_offset_horizontal(target);
+		} else {
+			set_scroll_offset(target);
+		}
+		return true;
+	}
+	// In place but the table is still refining: let the measurement-driven
+	// re-runs call back in; do not force another pass ourselves.
+	return false;
+}
+
 void RecyclerView::add_item_decoration(const Ref<ItemDecoration> &p_decor) {
 	if (p_decor.is_valid()) {
 		m_decorations.push_back(p_decor);
 	}
+	// Measured extents include the decoration insets; drop them all so the
+	// next layout re-measures with the new insets.
+	clear_measured_extents();
 	mark_data_changed();
 	queue_redraw();
 }
 
 void RecyclerView::remove_item_decoration(const Ref<ItemDecoration> &p_decor) {
 	m_decorations.erase(p_decor);
+	clear_measured_extents();
 	mark_data_changed();
 	queue_redraw();
 }
@@ -1248,10 +1571,37 @@ void RecyclerView::_draw() {
 }
 
 int RecyclerView::get_item_extent(int p_position) const {
+	if (m_auto_measure_items && p_position >= 0 && p_position < m_measured_extents.size()) {
+		const int measured = m_measured_extents[p_position];
+		if (measured > 0) {
+			return measured;
+		}
+	}
 	if (m_adapter.is_valid()) {
 		const int extent = m_adapter->get_item_extent(p_position);
 		if (extent > 0) {
 			return extent;
+		}
+	}
+	// Unmeasured row with auto-measure: use the adaptive estimate for its
+	// view type (smoothed recent measured extents) so the offset table
+	// changes as little as possible when the row is measured on entry; fall
+	// back to the static item extent (the Android-style default estimate).
+	if (m_auto_measure_items && m_adapter.is_valid()) {
+		const auto it = m_extent_estimates.find(m_adapter->get_item_view_type(p_position));
+		if (it != m_extent_estimates.end()) {
+			if (it->second.is_expand) {
+				// An unmeasured match_parent row: its extent is the live
+				// viewport size. Deriving it from the viewport (instead of a
+				// stored mean) keeps the offset table right across resizes,
+				// so the row entering the viewport measures exactly what the
+				// table already says and nothing jumps.
+				const bool vertical = m_layout.is_null() || m_layout->can_scroll_vertically();
+				return (int)(vertical ? get_viewport_size().y : get_viewport_size().x);
+			}
+			if (it->second.value > 0) {
+				return it->second.value;
+			}
 		}
 	}
 	return m_item_extent;
@@ -1350,6 +1700,11 @@ void RecyclerView::process_pending_updates() {
 	}
 	// Keep the cache's positions consistent, then transform the attached holders.
 	m_recycler->offset_position_records_for_ops(m_adapter_helper->get_pending_ops());
+	// Measured extents are position-keyed too: shift them with the ops so the
+	// untouched rows keep their measured values (a data change must not reset
+	// the whole list to estimates — that would shrink the estimated content
+	// below the scroll offset and make the layout jump as rows re-measure).
+	offset_measured_extents_for_ops(m_adapter_helper->get_pending_ops());
 	m_adapter_helper->consume_updates_in_one_pass(m_children);
 
 	// FLAG_UPDATE is set here (and cleared by the rebind below), so capture the
@@ -1407,6 +1762,19 @@ void RecyclerView::layout_children() {
 		return;
 	}
 	m_layout_in_progress = true;
+	// Auto-measure keeps the extent cache sized to the item count (0 = not
+	// measured; the array is cleared on data changes instead of shifted).
+	// resize_zeroed, not resize: the latter leaves freshly grown elements
+	// uninitialized for trivially-constructible types, and get_item_extent
+	// would treat a garbage positive value as a measured extent.
+	if (m_auto_measure_items) {
+		const int item_count = m_adapter->get_item_count();
+		if (m_measured_extents.size() != item_count) {
+			m_measured_extents.resize_zeroed(item_count);
+			m_measured_expand_flags.resize_zeroed(item_count);
+		}
+	}
+	int pass = 0;
 	do {
 		m_layout_requested_again = false;
 		// Two-phase layout for item animations: capture pre-update positions,
@@ -1433,8 +1801,36 @@ void RecyclerView::layout_children() {
 			m_children[i]->clear_old_position();
 		}
 		queue_redraw();
-	} while (m_layout_requested_again);
+		// Auto-measure: once the measured extents settle, re-anchor the scroll
+		// offset to the pending scroll target (port of Android's
+		// mPendingScrollPosition) and run one more pass for the new offset.
+		// set_scroll_offset re-enters layout_children, which only sets the
+		// re-run flag while a layout is running, so this converges here.
+		if (correct_pending_scroll_target()) {
+			m_layout_requested_again = true;
+		}
+		// Auto-measure can shrink the content size between layouts: notify_*
+		// clears the measured cache, unmeasured rows fall back to the
+		// estimate, and the estimated content can be shorter than the current
+		// offset. Nothing clamps the offset in that case (set_scroll_offset
+		// does, but it is not called), so the fill range comes out empty and
+		// the whole list looks gone. Clamp once; the next pass re-fills
+		// normally as the rows measure and the estimate recovers.
+		if (m_auto_measure_items) {
+			const bool h = m_layout->can_scroll_horizontally();
+			const int max = h ? get_max_scroll_offset_horizontal() : get_max_scroll_offset();
+			int &off = h ? m_scroll_offset_h : m_scroll_offset;
+			if (off > max) {
+				off = max;
+				m_layout_requested_again = true;
+			}
+		}
+		pass++;
+	} while (m_layout_requested_again && pass < MAX_AUTO_MEASURE_PASSES);
 	m_layout_in_progress = false;
+	// A pass cap may leave the re-run flag set; clear it so a later layout
+	// starts fresh.
+	m_layout_requested_again = false;
 	m_recycler->set_cache_fallback_enabled(false);
 	prefetch_adjacent();
 	if (m_item_touch_helper.is_valid()) {
@@ -1457,7 +1853,12 @@ void RecyclerView::prefetch_adjacent() {
 	if (m_layout.is_null() || m_adapter.is_null() || m_recycler.is_null()) {
 		return;
 	}
-	if (!m_prefetch_enabled) {
+	// With auto-measure, the pre-measurement of the oncoming rows is a
+	// correctness need, not an optimization: without it the rows measure on
+	// entry and move every visible row (scrolling the other way jitters). So
+	// the prefetch toggle gates the plain (reuse-only) prefetch; auto-measure
+	// always pre-measures.
+	if (!m_prefetch_enabled && !m_auto_measure_items) {
 		return;
 	}
 	if (m_last_scroll_direction == 0) {
@@ -1466,8 +1867,41 @@ void RecyclerView::prefetch_adjacent() {
 	Array positions;
 	m_layout->collect_adjacent_prefetch_positions(m_last_scroll_direction, this, positions);
 	for (int i = 0; i < positions.size(); i++) {
-		m_recycler->prefetch_view((int)positions[i]);
+		const int pos = (int)positions[i];
+		if (m_auto_measure_items) {
+			prefetch_and_measure(pos);
+		} else {
+			m_recycler->prefetch_view(pos);
+		}
 	}
+}
+
+void RecyclerView::prefetch_and_measure(int p_position) {
+	Ref<ViewHolder> holder = m_recycler->get_view_for_position(p_position);
+	if (holder.is_null()) {
+		return;
+	}
+	Control *control = holder->get_control();
+	// The measurement must run inside the tree: update_minimum_size is a
+	// no-op off-tree, and a recycled holder's min-size cache would be stale
+	// for its freshly bound content. The temporary attach has no other
+	// side effect — the RV's adapter callbacks live in add/remove_item_view,
+	// not in the bare add_child/remove_child used here.
+	if (control != nullptr) {
+		add_child(control);
+		const bool h = m_layout.is_valid() && m_layout->can_scroll_horizontally();
+		const float width = h ? get_viewport_size().y : get_viewport_size().x;
+		const int measured = measure_item_extent(holder, p_position, width);
+		if (measured > 0) {
+			m_measured_extents.write[p_position] = measured;
+			// The offset table rebuilds on the next layout (the next scroll
+			// pass) with the refined extents; the current display is not
+			// affected because these rows are outside the viewport.
+			m_layout->on_data_changed();
+		}
+		remove_child(control);
+	}
+	m_recycler->recycle_view(holder, p_position);
 }
 
 void RecyclerView::request_layout() {

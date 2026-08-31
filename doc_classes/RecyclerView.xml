@@ -86,8 +86,7 @@ Control resources held by the RecyclerView.</description>
 		<method name="get_item_extent" qualifiers="const">
 			<return type="int" />
 			<param index="0" name="position" type="int" />
-			<description>Returns the size of the item at [code]position[/code] along the scroll axis, from
-[method Adapter._get_item_extent] when overridden, otherwise the default [method get_default_item_extent].</description>
+			<description>Returns the size of the item at [code]position[/code] along the scroll axis: the measured extent when [member auto_measure_items] has measured it, otherwise [method Adapter._get_item_extent] when overridden, otherwise the default [method get_default_item_extent] (which, with auto-measure, serves as the estimate for not-yet-measured items).</description>
 		</method>
 		<method name="get_item_insets" qualifiers="const">
 			<return type="Vector4" />
@@ -294,7 +293,8 @@ the bottom of a chat list.</description>
 	<members>
 		<member name="adapter" type="Adapter" setter="set_adapter" getter="get_adapter">The data adapter providing items.</member>
 		<member name="clip_contents" type="bool" setter="set_clip_contents" getter="is_clipping_contents" overrides="Control" default="true" />
-		<member name="item_extent" type="int" setter="set_item_extent" getter="get_default_item_extent" default="64">Default item extent along the scroll axis (used when the adapter does not override per-item extents).</member>
+		<member name="item_extent" type="int" setter="set_item_extent" getter="get_default_item_extent" default="64">Default item extent along the scroll axis (used when the adapter does not override per-item extents). With [member auto_measure_items] enabled this becomes the estimate for items that have not been measured yet.</member>
+		<member name="auto_measure_items" type="bool" setter="set_auto_measure_items" getter="get_auto_measure_items" default="false">When enabled, each item's extent along the scroll axis is measured from the item control itself instead of the static item extent. The root control's combined minimum size decides the slot (Android's wrap_content), clamped by its combined maximum size when one is declared ([code]custom_maximum_size[/code] or a script [code]_get_maximum_size[/code] override), and a root control with [code]SIZE_EXPAND[/code] along the scroll axis fills the viewport (Android's match_parent). Measured extents are cached by position and re-measured after any data change; items that have not been measured yet use [member item_extent] (or [method Adapter._get_item_extent]) as an estimate, so the very first layout of a region can differ from the final one. This makes content-sized items such as a [code]RichTextLabel[/code] with fit_content work out of the box: give the item's root control a content-driven minimum size and enable this. Disabled by default; the static extent path is unchanged while off.</member>
 		<member name="layout" type="LayoutManager" setter="set_layout" getter="get_layout">The layout manager that positions items.</member>
 		<member name="scroll_bar_auto_hide" type="bool" setter="set_scroll_bar_auto_hide" getter="get_scroll_bar_auto_hide" default="true">Whether the scroll bar fades out when idle.</member>
 		<member name="scroll_bar_hide_delay" type="float" setter="set_scroll_bar_hide_delay" getter="get_scroll_bar_hide_delay" default="0.5">Seconds the scroll bar stays visible after the last activity.</member>

@@ -69,7 +69,7 @@ func _on_layout_children(recycler_view, state) -> void:
     # 1. Recycle holders that left the viewport.
     for i in range(recycler_view.get_child_holder_count() - 1, -1, -1):
         var holder = recycler_view.get_child_holder_at(i)
-        if holder.get_position() < first or holder.get_position() > last:
+        if holder.get_position() &lt; first or holder.get_position() > last:
             recycler_view.remove_item_view(holder)
             recycler_view.recycle_view(holder, holder.get_position())
 

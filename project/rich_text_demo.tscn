@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://c8q0m7n2d3x5e"]
+
+[ext_resource type="Script" uid="uid://bniys2msyfh52" path="res://rich_text_demo.gd" id="1_demo"]
+
+[node name="RichTextDemo" type="VBoxContainer" unique_id=1254926573]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="InfoLabel" type="Label" parent="." unique_id=1250045546]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="." unique_id=732530779]
+layout_mode = 2
+
+[node name="ToggleButton" type="Button" parent="Buttons" unique_id=934057354]
+unique_name_in_owner = true
+layout_mode = 2
+text = "关掉自动测量"
+
+[node name="AddButton" type="Button" parent="Buttons" unique_id=408523657]
+unique_name_in_owner = true
+layout_mode = 2
+text = "追加短消息"
+
+[node name="GrowButton" type="Button" parent="Buttons" unique_id=610061664]
+unique_name_in_owner = true
+layout_mode = 2
+text = "第 1 条消息变高"
+
+[node name="BottomButton" type="Button" parent="Buttons" unique_id=705645819]
+unique_name_in_owner = true
+layout_mode = 2
+text = "瞬间跳到底部"
+
+[node name="Main" type="HBoxContainer" parent="." unique_id=489853793]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecyclerView" type="RecyclerView" parent="Main" unique_id=180492331]
+auto_measure_items = true
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LogLabel" type="Label" parent="Main" unique_id=1579388321]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HintLabel" type="Label" parent="." unique_id=2146193134]
+custom_minimum_size = Vector2(1152, 0)
+layout_mode = 2
+text = "消息高度由内容决定(RichTextLabel fit_content + auto_measure_items)。关闭自动测量后长消息会被裁剪到固定 64px;第 1 条是 SIZE_EXPAND 的系统公告,占满整个视口。滚动时 created 应保持稳定(视图被复用)。"
+autowrap_mode = 3
