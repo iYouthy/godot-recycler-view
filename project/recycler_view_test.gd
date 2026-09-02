@@ -17,7 +17,6 @@ func _ready() -> void:
 	var adapter = MyAdapter.new()
 	set_adapter(adapter)
 	set_layout(LinearLayoutManager.new())
-	set_scroll_bar(DefaultScrollBar.new())
 
 	while adapter.get_current_list().size() < 10:
 		await get_tree().create_timer(1).timeout

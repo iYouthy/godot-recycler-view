@@ -3,13 +3,12 @@ extends Control
 @onready var recycler_view: RecyclerView = %RecyclerView
 
 # 自定义滚动条（16px 胶囊样式，见 custom_scroll_bar.gd）。
-# 用法：recycler_view.set_scroll_bar(你的滚动条实例)。
-# 继承 RecyclerViewScrollBar 完全自定义（自己画 + 自己处理事件），
-# 或继承 DefaultScrollBar 只改样式（交互全保留）。
-const CustomScrollBar := preload("res://custom_scroll_bar.gd")
+# RV 的滚动条是内置的 VScrollBar/HScrollBar（RV 构造时自动创建），
+# 直接用 get_v_scroll_bar() 取到后主题化即可，无需子类。
+const CustomScrollBarTheme := preload("res://custom_scroll_bar.gd")
 
 class DemoAdapter extends Adapter:
-	var count: int = 1000
+	var count: int = 20
 	var created := 0
 
 	func _get_item_count() -> int:
@@ -21,13 +20,18 @@ class DemoAdapter extends Adapter:
 	func _create_item(parent: Control, view_type: int) -> ViewHolder:
 		created += 1
 		var vh := ViewHolder.new()
+		var box := PanelContainer.new()
 		var label := Label.new()
-		label.set_size(Vector2(200, 60))
-		vh.set_control(label)
+		label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(label)
+		vh.set_control(box)
 		return vh
 
 	func _bind_item(holder: ViewHolder, position: int) -> void:
-		(holder.get_control() as Label).text = "Item %d" % position
+		var box :PanelContainer = holder.control
+		var label: Label = box.get_child(0)
+		label.text = "Item %d" % position
 
 
 func _ready() -> void:
@@ -35,4 +39,6 @@ func _ready() -> void:
 	recycler_view.set_item_extent(60)
 	recycler_view.set_adapter(adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
-	recycler_view.set_scroll_bar(CustomScrollBar.new())
+	CustomScrollBarTheme.style(recycler_view.get_v_scroll_bar())
+	# 常显方便观察（Auto 模式默认只在内容溢出时显示）。
+	recycler_view.set_scroll_bar_auto_hide(false)

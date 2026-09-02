@@ -30,9 +30,7 @@ class RightAdapter extends Adapter:
 func _ready() -> void:
 	left_rv.set_adapter(LeftAdapter.new())
 	left_rv.set_layout(LinearLayoutManager.new())
-	left_rv.set_scroll_bar(DefaultScrollBar.new())
 	
 	right_rv.set_adapter(RightAdapter.new())
 	right_rv.set_layout(LinearLayoutManager.new())
-	right_rv.set_scroll_bar(DefaultScrollBar.new())
 		

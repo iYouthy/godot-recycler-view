@@ -120,7 +120,6 @@ func _ready() -> void:
 	recycler_view.set_auto_measure_items(true)
 	recycler_view.set_adapter(_adapter)
 	recycler_view.set_layout(LinearLayoutManager.new())
-	recycler_view.set_scroll_bar(DefaultScrollBar.new())
 	recycler_view.set_prefetch_enabled(false)
 	recycler_view.request_layout()
 	_last_created = _adapter.created

@@ -20,13 +20,23 @@ class UserListAdapter extends ListAdapter:
 		created += 1
 		var vh := ViewHolder.new()
 		var label := Label.new()
-		label.set_size(Vector2(360, 40))
-		vh.set_control(label)
+		var box := PanelContainer.new()
+		
+		label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.add_child(label)
+		vh.set_control(box)
 		return vh
 
 	func _bind_item(holder: ViewHolder, position: int) -> void:
 		var user: Dictionary = get_item(position)
-		(holder.get_control() as Label).text = "%s (id %d)" % [user["name"], user["id"]]
+		var box: PanelContainer = holder.get_control()
+		var stylebox := StyleBoxFlat.new()
+		stylebox.bg_color = Color.from_hsv(fmod(position * 0.07, 1.0), 0.4, 0.6)
+		stylebox.set_corner_radius_all(15.0)
+		box.add_theme_stylebox_override("panel", stylebox)
+		var label: Label = box.get_child(0) 
+		label.text = "%s (id %d)" % [user["name"], user["id"]]
 
 
 @onready var recycler_view: RecyclerView = %RecyclerView

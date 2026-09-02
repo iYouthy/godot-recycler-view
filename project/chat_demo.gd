@@ -44,7 +44,6 @@ func _ready() -> void:
 	var layout := LinearLayoutManager.new()
 	layout.set_reverse_layout(true)
 	recycler_view.set_layout(layout)
-	recycler_view.set_scroll_bar(DefaultScrollBar.new())
 	send_button.pressed.connect(_send)
 
 

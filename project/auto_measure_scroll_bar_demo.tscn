@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://bfnhdwpdokkw5"]
+
+[ext_resource type="Script" uid="uid://42vakmc7pg6l" path="res://auto_measure_scroll_bar_demo.gd" id="1_demo"]
+
+[node name="AutoMeasureScrollBarDemo" type="VBoxContainer" unique_id=1340678938]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="HintLabel" type="Label" parent="." unique_id=3823191]
+layout_mode = 2
+text = "auto-measure 边界：连续「追加一项」直到超出一屏，观察 bar 闪现提示与四种模式差异（Overlay 覆盖 / Inset 挤压 / Reserve 预留 / Never Show 隐藏）。行高按文本换行实测，挤压使内容变宽高。"
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="." unique_id=1715471902]
+layout_mode = 2
+
+[node name="AppendButton" type="Button" parent="Buttons" unique_id=451275453]
+unique_name_in_owner = true
+layout_mode = 2
+text = "追加一项"
+
+[node name="RemoveButton" type="Button" parent="Buttons" unique_id=776616511]
+unique_name_in_owner = true
+layout_mode = 2
+text = "删除一项"
+
+[node name="ModeButton" type="Button" parent="Buttons" unique_id=494659166]
+unique_name_in_owner = true
+layout_mode = 2
+text = "模式：Overlay（点击切换）"
+
+[node name="AutoHideButton" type="Button" parent="Buttons" unique_id=957946351]
+unique_name_in_owner = true
+layout_mode = 2
+text = "auto-hide：on"
+
+[node name="InfoLabel" type="Label" parent="." unique_id=1526777472]
+unique_name_in_owner = true
+layout_mode = 2
+text = "模式 Overlay | ..."
+
+[node name="RecyclerView" type="RecyclerView" parent="." unique_id=1619238401]
+item_extent = 40
+auto_measure_items = true
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
