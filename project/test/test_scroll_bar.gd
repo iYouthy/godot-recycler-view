@@ -158,6 +158,80 @@ func test_auto_hide_off_keeps_bar_visible() -> void:
 	rv.free()
 
 
+func test_bar_hidden_when_content_fits() -> void:
+	# No scrolling is possible when the content fits the viewport, so the bar
+	# must hide entirely — even with auto_hide off ("always show" means "don't
+	# fade when idle", not "show with nothing to scroll").
+	var s := await _make_rv(true)
+	var rv: RecyclerView = s.rv
+	var adapter: BarAdapter = s.adapter
+	var bar = rv.get_scroll_bar()
+	rv.set_scroll_bar_auto_hide(false)
+	# Shrink the content (5x40 = 200px) below the 600px viewport and re-layout.
+	adapter.count = 5
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	assert_that(int(bar.get_thumb_rect().size.y)).is_equal(0)
+	# The bar was visible before the shrink (auto_hide off); it fades out.
+	await get_tree().create_timer(0.5).timeout
+	assert_that(bar.get_modulate().a).is_less(0.05)
+	rv.free_items()
+	rv.free()
+
+
+func test_bar_reappears_when_content_grows_past_viewport() -> void:
+	# The fits-check runs every frame: growing the content back past the
+	# viewport brings the bar up again (auto_hide off keeps it up).
+	var s := await _make_rv(true)
+	var rv: RecyclerView = s.rv
+	var adapter: BarAdapter = s.adapter
+	var bar = rv.get_scroll_bar()
+	rv.set_scroll_bar_auto_hide(false)
+	adapter.count = 5
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.6).timeout
+	assert_that(bar.get_modulate().a).is_less(0.05)
+	# Grow the content back past the viewport.
+	adapter.count = 10000
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout
+	assert_that(int(bar.get_thumb_rect().size.y)).is_greater(0)
+	assert_that(bar.get_modulate().a).is_greater(0.5)
+	rv.free_items()
+	rv.free()
+
+
+func test_bar_stays_hidden_on_load_when_content_fits() -> void:
+	# A list shorter than the viewport must not flash the bar on load:
+	# auto-hide's 0.5s "show while recently active" window must not apply
+	# when there is nothing to scroll.
+	get_window().size = Vector2i(1920, 1080)
+	get_window().content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
+	var rv := RecyclerView.new()
+	rv.set_size(Vector2(360, 600))
+	var adapter := BarAdapter.new()
+	adapter.count = 5  # 5x40 = 200px, fits the 600px viewport
+	rv.set_item_extent(40)
+	rv.set_adapter(adapter)
+	rv.set_layout(LinearLayoutManager.new())
+	rv.set_scroll_bar(DefaultScrollBar.new())
+	get_tree().root.add_child(rv)
+	rv.request_layout()
+	await get_tree().process_frame
+	var bar = rv.get_scroll_bar()
+	# Mid-hide-delay: the old code would have faded the bar fully in here.
+	await get_tree().create_timer(0.3).timeout
+	assert_that(bar.get_modulate().a).is_less(0.5)
+	# Well past the 0.5s hide delay: still never appeared.
+	await get_tree().create_timer(0.5).timeout
+	assert_that(bar.get_modulate().a).is_less(0.05)
+	rv.free_items()
+	rv.free()
+
+
 func test_hide_delay_defaults_to_android_and_forwards() -> void:
 	var s := await _make_rv(true)
 	var rv: RecyclerView = s.rv

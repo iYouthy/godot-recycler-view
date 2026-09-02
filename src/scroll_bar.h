@@ -82,8 +82,9 @@ protected:
 
 // Default scroll bar: draws a track and a thumb sized by the viewport/content
 // ratio, drags the thumb to scroll the RV, and auto-hides after the RV sits
-// idle for a while (modulate alpha fade). Subclass to tweak appearance or
-// behavior.
+// idle for a while (modulate alpha fade). When the content fits the viewport
+// (nothing to scroll) it hides entirely — no track, no thumb, no input —
+// regardless of auto_hide. Subclass to tweak appearance or behavior.
 class DefaultScrollBar : public RecyclerViewScrollBar {
 	GDCLASS(DefaultScrollBar, RecyclerViewScrollBar)
 

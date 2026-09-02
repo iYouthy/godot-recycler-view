@@ -249,6 +249,14 @@ void DefaultScrollBar::_draw() {
 	//   "grabber_highlight"            = thumb hovered or pressed
 	// Users style it with add_theme_stylebox_override() / a Theme resource; the
 	// color properties below are only a fallback when no theme provides one.
+	const Rect2 thumb = get_thumb_rect();
+	// The content fits the viewport: nothing to scroll, so neither the track
+	// nor the thumb is drawn (Android draws no scrollbar for non-scrollable
+	// content). Skipping the track here keeps the fade-out after a data
+	// change clean — no empty track while the alpha decays.
+	if (thumb.size.x <= 0.0f || thumb.size.y <= 0.0f) {
+		return;
+	}
 	const Rect2 track_rect(0.0f, 0.0f, get_size().x, get_size().y);
 	const Ref<StyleBox> track_sb = get_theme_stylebox(has_focus() ? StringName("scroll_focus") : StringName("scroll"));
 	if (track_sb.is_valid()) {
@@ -260,8 +268,7 @@ void DefaultScrollBar::_draw() {
 		flat->set_corner_radius_all(m_corner_radius);
 		draw_style_box(flat, track_rect);
 	}
-	const Rect2 thumb = get_thumb_rect();
-	if (thumb.size.x > 0.0f && thumb.size.y > 0.0f) {
+	{
 		const StringName sb_name = (m_hovered || m_dragging) ? StringName("grabber_highlight") : StringName("grabber");
 		const Ref<StyleBox> thumb_sb = get_theme_stylebox(sb_name);
 		if (thumb_sb.is_valid()) {
@@ -447,6 +454,12 @@ void DefaultScrollBar::_process(double p_delta) {
 			queue_redraw();
 		}
 	}
+	// The content fits the viewport: nothing to scroll, so the bar must not
+	// show at all — not even the track — regardless of auto_hide or recent
+	// activity (Android draws no scrollbar for non-scrollable content). Checked
+	// every frame so a data change that shrinks the content fades the bar out,
+	// and the fade-in never happens for a short list.
+	const bool content_fits = get_content_size() <= get_viewport_size();
 	// Show while dragging, scrolling, or briefly after a scroll; fade out once
 	// the RV has sat idle past the delay.
 	bool interacting = m_dragging;
@@ -454,7 +467,9 @@ void DefaultScrollBar::_process(double p_delta) {
 			&& m_recycler_view->get_scroll_state() != RecyclerView::SCROLL_STATE_IDLE) {
 		interacting = true;
 	}
-	if (!get_auto_hide() || interacting || m_idle_time < get_hide_delay()) {
+	if (content_fits) {
+		m_target_alpha = 0.0f;
+	} else if (!get_auto_hide() || interacting || m_idle_time < get_hide_delay()) {
 		m_target_alpha = 1.0f;
 	} else {
 		m_target_alpha = 0.0f;

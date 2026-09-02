@@ -3,7 +3,9 @@
 	<brief_description>Default scroll bar: track + thumb, draggable, auto-hides.</brief_description>
 	<description>DefaultScrollBar is the built-in scroll bar: it draws a track and a thumb sized by the
 viewport / content ratio, lets the user drag the thumb to scroll (or click the track to
-jump), and fades out when the list is idle. It can be subclassed to tweak the look.
+jump), and fades out when the list is idle. When the content fits the viewport (nothing to
+scroll), it hides entirely — no track, no thumb, no input — regardless of [member auto_hide].
+It can be subclassed to tweak the look.
 
 [codeblock]
 recycler_view.set_scroll_bar(DefaultScrollBar.new())
