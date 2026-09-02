@@ -14,7 +14,7 @@ godot-recycler-view 的文档。**类参考**已编译进 GDExtension 库（来�
 | [数据更新与 DiffUtil](zh-CN/guides/data_updates.md) | notify_* 操作、ListAdapter + submit_list、payload 局部更新 |
 | [条目动画](zh-CN/guides/animations.md) | DefaultItemAnimator、自定义动画器 |
 | [触摸交互与吸附](zh-CN/guides/touch_interaction.md) | ItemTouchHelper 拖拽/滑动、SnapHelper |
-| [滚动条](zh-CN/guides/scroll_bars.md) | DefaultScrollBar、自定义滚动条 |
+| [滚动条](zh-CN/guides/scroll_bars.md) | 内置滚动条、四种模式、主题化 |
 | [反向列表与嵌套](zh-CN/guides/reverse_and_nested.md) | 聊天布局、scroll_to_position、嵌套滚动 |
 
 ## 类参考
@@ -25,7 +25,7 @@ godot-recycler-view 的文档。**类参考**已编译进 GDExtension 库（来�
 - **布局** — LayoutManager · LinearLayoutManager · GridLayoutManager · StaggeredGridLayoutManager · SpanSizeLookup
 - **装饰与动画** — ItemDecoration · ItemAnimator · DefaultItemAnimator
 - **交互** — ItemTouchHelper · ItemTouchHelperCallback · SnapHelper · LinearSnapHelper · PagerSnapHelper · ScrollListener
-- **滚动条** — RecyclerViewScrollBar · DefaultScrollBar
+- **滚动条** — 内置 ScrollBar · 滚动模式 · 自动隐藏
 - **数据与 diff** — DiffUtil · DiffUtilCallback · DiffUtilItemCallback · DiffResult · ListUpdateCallback · BatchingListUpdateCallback · AdapterListUpdateCallback
 - **内部机制** — Recycler · State · AdapterHelper · SortedList · SortedListCallback · AdapterDataObserver
 

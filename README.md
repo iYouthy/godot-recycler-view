@@ -31,7 +31,7 @@ Interaction & effects:
 - **ItemAnimator / DefaultItemAnimator** — fade-in, fade-out, slide (move) animations on updates.
 - **ItemTouchHelper** — long-press drag-to-reorder and swipe-to-dismiss.
 - **SnapHelper** — `LinearSnapHelper` (center snap) and `PagerSnapHelper` (one page per fling).
-- **ScrollBar** — extensible `RecyclerViewScrollBar` protocol + a draggable, auto-hiding `DefaultScrollBar` (vertical and horizontal).
+- **ScrollBar** — Godot built-in scroll bars (`Overlay` / `Inset` / `Reserve` / `Never Show` modes, auto-fade, theme directly).
 - **ItemDecoration** — per-item insets and drawn separators (e.g. dividers).
 - **ScrollListener** — scroll deltas and `IDLE / DRAGGING / SETTLING` state transitions; fling with inertial scrolling.
 - **Nested RecyclerView** scrolling, chat-style **reverse layouts**, `scroll_to_position` / `smooth_scroll_to_position`.
@@ -89,7 +89,7 @@ var rv := RecyclerView.new()
 rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
-rv.set_scroll_bar(DefaultScrollBar.new())      # optional
+rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_INSET)  # optional
 add_child(rv)
 ```
 
@@ -116,10 +116,11 @@ Open the `project/` folder in Godot and run any scene:
 | `chat_demo.tscn` | Reverse-layout chat list; new messages at the bottom |
 | `horizontal_demo.tscn` | Horizontal list with a horizontal scroll bar |
 | `lifecycle_demo.tscn` | Adapter lifecycle callbacks (attach / detach / recycled / failed-to-recycle) with a live event log |
-| `custom_scroll_bar_demo.tscn` | A custom scroll bar subclassing `RecyclerViewScrollBar` |
+| `custom_scroll_bar_demo.tscn` | Theming the built-in scroll bar directly (16px capsule style) |
 | `custom_layout_demo.tscn` | A GDScript-defined layout: subclass `LayoutManager` for a wave layout (full tutorial comments inside) |
 | `scroll_jump_demo.tscn` | Observe `scroll_to_position` vs `smooth_scroll_to_position` — both must move without fabricating views |
 | `rich_text_demo.tscn` | `auto_measure_items` content-sized items: message heights follow the text, a `SIZE_EXPAND` banner fills the viewport, toggle to compare |
+| `auto_measure_scroll_bar_demo.tscn` | auto-measure + scroll bar boundary: append until the list overflows (bar flash hint) and switch the four modes live |
 | `nested_demo.tscn` | Nested RecyclerViews scrolling together |
 
 ## Documentation

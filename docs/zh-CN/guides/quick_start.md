@@ -37,7 +37,7 @@ var rv := RecyclerView.new()
 rv.set_item_extent(40)                # 沿滚动轴的默认条目尺寸
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
-rv.set_scroll_bar(DefaultScrollBar.new())   # 可选
+rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_OVERLAY)  # 滚动条模式(可选,默认 Overlay)
 add_child(rv)
 ```
 

@@ -17,7 +17,7 @@ constants. The **guides** below are feature walkthroughs with runnable code.
 | [Data updates & DiffUtil](en/guides/data_updates.md) | notify_* ops, ListAdapter + submit_list, payload partial updates |
 | [Item animations](en/guides/animations.md) | DefaultItemAnimator, custom animators |
 | [Touch interaction & snapping](en/guides/touch_interaction.md) | ItemTouchHelper drag / swipe, SnapHelper |
-| [Scroll bars](en/guides/scroll_bars.md) | DefaultScrollBar, custom scroll bars |
+| [Scroll bars](en/guides/scroll_bars.md) | built-in bars, the four modes, theming |
 | [Reverse lists & nesting](en/guides/reverse_and_nested.md) | Chat layouts, scroll_to_position, nested scrolling |
 
 ## Class reference
@@ -28,7 +28,7 @@ All 33 registered classes have an entry in the editor's documentation. The most 
 - **Layout** — LayoutManager · LinearLayoutManager · GridLayoutManager · StaggeredGridLayoutManager · SpanSizeLookup
 - **Decoration & animation** — ItemDecoration · ItemAnimator · DefaultItemAnimator
 - **Interaction** — ItemTouchHelper · ItemTouchHelperCallback · SnapHelper · LinearSnapHelper · PagerSnapHelper · ScrollListener
-- **Scrolling** — RecyclerViewScrollBar · DefaultScrollBar
+- **Scrolling** — built-in ScrollBars · scroll modes · auto-hide
 - **Data & diff** — DiffUtil · DiffUtilCallback · DiffUtilItemCallback · DiffResult · ListUpdateCallback · BatchingListUpdateCallback · AdapterListUpdateCallback
 - **Internal** — Recycler · State · AdapterHelper · SortedList · SortedListCallback · AdapterDataObserver
 

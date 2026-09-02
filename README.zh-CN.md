@@ -31,7 +31,7 @@ add_child(rv)
 - **ItemAnimator / DefaultItemAnimator** — 增删淡入淡出、移动滑动动画。
 - **ItemTouchHelper** — 长按拖拽排序与滑动删除。
 - **SnapHelper** — `LinearSnapHelper`（居中吸附）与 `PagerSnapHelper`（一次 fling 翻一页）。
-- **ScrollBar** — 可扩展的 `RecyclerViewScrollBar` 协议 + 可拖动、自动隐藏的 `DefaultScrollBar`（垂直/水平）。
+- **ScrollBar** — Godot 内置滚动条（`Overlay` / `Inset` / `Reserve` / `Never Show` 四模式，自动淡出，直接主题化）。
 - **ItemDecoration** — 条目内边距与绘制分隔线。
 - **ScrollListener** — 滚动增量与 `IDLE / DRAGGING / SETTLING` 状态切换；fling 惯性滚动。
 - **嵌套 RecyclerView** 滚动、聊天式 **reverse 布局**、`scroll_to_position` / `smooth_scroll_to_position`。
@@ -89,7 +89,7 @@ var rv := RecyclerView.new()
 rv.set_item_extent(40)
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
-rv.set_scroll_bar(DefaultScrollBar.new())      # 可选
+rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_INSET)  # 可选
 add_child(rv)
 ```
 
@@ -114,11 +114,12 @@ add_child(rv)
 | `snap_demo.tscn` | `LinearSnapHelper` chip 行 + `PagerSnapHelper` 轮播 |
 | `chat_demo.tscn` | reverse 布局聊天列表，新消息在底部 |
 | `horizontal_demo.tscn` | 水平列表 + 水平滚动条 |
-| `custom_scroll_bar_demo.tscn` | 继承 `RecyclerViewScrollBar` 的自定义滚动条 |
+| `custom_scroll_bar_demo.tscn` | 直接主题化内置滚动条（16px 胶囊样式） |
 | `lifecycle_demo.tscn` | Adapter 生命周期回调（attach / detach / recycled / 拒绝回收）+ 实时事件日志 |
 | `custom_layout_demo.tscn` | 在 GDScript 里继承 `LayoutManager` 自定义布局（波浪排布，含完整教学注释） |
 | `scroll_jump_demo.tscn` | 观察 `scroll_to_position` 与 `smooth_scroll_to_position` —— 两种滚动都不应产生新的视图 |
 | `rich_text_demo.tscn` | `auto_measure_items` 内容自适应尺寸：消息高度由文本决定，`SIZE_EXPAND` 系统公告占满视口，开关对比 |
+| `auto_measure_scroll_bar_demo.tscn` | auto-measure 下从不满一屏追加到溢出：滚动条闪现提示 + 运行时切换四种模式 |
 | `nested_demo.tscn` | 嵌套 RecyclerView 联动滚动 |
 
 ## 文档

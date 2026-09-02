@@ -37,7 +37,7 @@ var rv := RecyclerView.new()
 rv.set_item_extent(40)                # default item extent along the scroll axis
 rv.set_adapter(MyAdapter.new())
 rv.set_layout(LinearLayoutManager.new())
-rv.set_scroll_bar(DefaultScrollBar.new())   # optional
+rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_OVERLAY)  # scroll bar mode (optional; Overlay is the default)
 add_child(rv)
 ```
 
