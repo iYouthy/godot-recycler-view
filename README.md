@@ -199,4 +199,9 @@ clone. The significant differences, and how each one is handled:
 
 ## License
 
-[The Unlicense](LICENSE.md) — public domain.
+[MIT](LICENSE.md) — permissive: use, modify, distribute and sell freely, with
+attribution retained.
+
+This project is a port of Android RecyclerView (androidx.recyclerview, AOSP,
+Apache-2.0); the port is an original reimplementation and retains the upstream
+attribution per the Apache License, as noted in the LICENSE file.

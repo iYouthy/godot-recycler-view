@@ -167,4 +167,7 @@ scons tests=yes && tests/bin/test_runner
 
 ## License
 
-[The Unlicense](LICENSE.md) — 公有领域。
+[MIT](LICENSE.md) — 宽松许可：可自由使用、修改、分发与商用，仅需保留版权声明。
+
+本库移植自 Android RecyclerView（androidx.recyclerview, AOSP, Apache-2.0）；
+移植实现为原创重写，按 Apache-2.0 的署名要求，上游出处已在 LICENSE 中注明。
