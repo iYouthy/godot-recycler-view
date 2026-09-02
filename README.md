@@ -54,6 +54,16 @@ The build compiles the class reference in `doc_classes/` into the extension libr
 
 The `.gdextension` descriptor lives at `project/bin/godot_recycler_view.gdextension`; the `project/` folder is a complete Godot project you can open and run the demos from.
 
+## macOS GateKeeper
+
+macOS tags files **downloaded from the network** (browser, GitHub Releases/Artifacts, ...) with a quarantine attribute and checks their signature with GateKeeper on first load:
+
+- A dylib **built on your own machine** (`scons`) has no quarantine attribute and just works.
+- A dylib **built by CI (GitHub Actions)** counts as downloaded. The CI applies only an *ad-hoc* signature (`codesign -s -`), which proves integrity but is **not an Apple Developer signature and is not notarized**, so GateKeeper still blocks it: the first load (opening the project in the Godot editor, or running the game) pops a "cannot verify the developer" style warning.
+  - Workaround: go to **System Settings → Privacy & Security** and click "Open Anyway"/"Allow", or choose how to open it from the warning dialog. After that it works normally.
+
+**If you ship a macOS build based on this library**: you need an **Apple Developer account** — sign the artifacts (dylib and app) with a **Developer ID certificate and notarize** them before distributing, otherwise your users hit the same GateKeeper block after downloading.
+
 ## Quick start
 
 ```gdscript

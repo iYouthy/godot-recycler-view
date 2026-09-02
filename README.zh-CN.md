@@ -54,6 +54,16 @@ scons                                     # 构建并安装到 project/bin/<plat
 
 `.gdextension` 描述文件在 `project/bin/godot_recycler_view.gdextension`；`project/` 是一个完整的 Godot 工程，可直接打开运行 demo。
 
+## macOS GateKeeper
+
+macOS 会对**从网络下载**（浏览器、GitHub Releases/Artifacts 等）的文件打上 quarantine 标记，并在首次加载时用 GateKeeper 校验签名：
+
+- **本机编译**的 dylib（`scons` 产物）没有 quarantine 标记，可直接使用，不会被拦截。
+- **CI（GitHub Actions）编译**的 dylib 属于"从网络下载"。CI 只做了 ad-hoc 签名（`codesign -s -`），它只能证明文件完整性，**不属于 Apple 开发者签名，也没有经过公证（notarization）**，因此 GateKeeper 仍会拦截：首次加载（运行 Godot 编辑器打开工程、或运行游戏）会弹出"无法验证开发者"之类的警告。
+  - 解决：前往 **系统设置 → 隐私与安全性**，点击"仍要打开"/"允许"；或在该警告弹窗里选择打开方式。之后即可正常使用。
+
+**如果你要分发基于本库开发的 macOS 版本**：需要申请 **Apple Developer 账号**，对编译产物（dylib 与 App）使用 **Developer ID 签名 + 公证（notarization）** 后才可以对外分发，否则用户下载后同样会被 GateKeeper 拦截。
+
 ## 快速上手
 
 ```gdscript
