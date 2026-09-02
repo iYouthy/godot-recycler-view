@@ -22,7 +22,6 @@
 #include "list_update_callback.h"
 #include "recycler.h"
 #include "recycler_view.h"
-#include "scroll_bar.h"
 #include "scroll_listener.h"
 #include "snap_helper.h"
 #include "sorted_list_gd.h"
@@ -78,9 +77,6 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(SnapHelper);
 	GDREGISTER_CLASS(LinearSnapHelper);
 	GDREGISTER_CLASS(PagerSnapHelper);
-	// Scroll bar protocol (base Control, subclasses extend it) + default impl.
-	GDREGISTER_CLASS(RecyclerViewScrollBar);
-	GDREGISTER_CLASS(DefaultScrollBar);
 	GDREGISTER_CLASS(RecyclerView);
 }
 

@@ -1,8 +1,10 @@
 #include "recycler_view.h"
 
+#include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/input_event_mouse.hpp>
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
+#include <godot_cpp/classes/viewport.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/color.hpp>
@@ -108,8 +110,20 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("smooth_scroll_to_position", "position", "duration"), &RecyclerView::smooth_scroll_to_position);
 	ClassDB::bind_method(D_METHOD("set_snap_helper", "helper"), &RecyclerView::set_snap_helper);
 	ClassDB::bind_method(D_METHOD("get_snap_helper"), &RecyclerView::get_snap_helper);
-	ClassDB::bind_method(D_METHOD("set_scroll_bar", "bar"), &RecyclerView::set_scroll_bar);
-	ClassDB::bind_method(D_METHOD("get_scroll_bar"), &RecyclerView::get_scroll_bar);
+	ClassDB::bind_method(D_METHOD("get_v_scroll_bar"), &RecyclerView::get_v_scroll_bar);
+	ClassDB::bind_method(D_METHOD("get_h_scroll_bar"), &RecyclerView::get_h_scroll_bar);
+	ClassDB::bind_method(D_METHOD("set_h_scroll", "pos"), &RecyclerView::set_h_scroll);
+	ClassDB::bind_method(D_METHOD("get_h_scroll"), &RecyclerView::get_h_scroll);
+	ClassDB::bind_method(D_METHOD("set_v_scroll", "pos"), &RecyclerView::set_v_scroll);
+	ClassDB::bind_method(D_METHOD("get_v_scroll"), &RecyclerView::get_v_scroll);
+	ClassDB::bind_method(D_METHOD("set_horizontal_custom_step", "step"), &RecyclerView::set_horizontal_custom_step);
+	ClassDB::bind_method(D_METHOD("get_horizontal_custom_step"), &RecyclerView::get_horizontal_custom_step);
+	ClassDB::bind_method(D_METHOD("set_vertical_custom_step", "step"), &RecyclerView::set_vertical_custom_step);
+	ClassDB::bind_method(D_METHOD("get_vertical_custom_step"), &RecyclerView::get_vertical_custom_step);
+	ClassDB::bind_method(D_METHOD("set_horizontal_scroll_mode", "mode"), &RecyclerView::set_horizontal_scroll_mode);
+	ClassDB::bind_method(D_METHOD("get_horizontal_scroll_mode"), &RecyclerView::get_horizontal_scroll_mode);
+	ClassDB::bind_method(D_METHOD("set_vertical_scroll_mode", "mode"), &RecyclerView::set_vertical_scroll_mode);
+	ClassDB::bind_method(D_METHOD("get_vertical_scroll_mode"), &RecyclerView::get_vertical_scroll_mode);
 	ClassDB::bind_method(D_METHOD("set_scroll_bar_auto_hide", "enabled"), &RecyclerView::set_scroll_bar_auto_hide);
 	ClassDB::bind_method(D_METHOD("get_scroll_bar_auto_hide"), &RecyclerView::get_scroll_bar_auto_hide);
 	ClassDB::bind_method(D_METHOD("set_scroll_bar_hide_delay", "delay"), &RecyclerView::set_scroll_bar_hide_delay);
@@ -118,6 +132,10 @@ void RecyclerView::_bind_methods() {
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_IDLE", SCROLL_STATE_IDLE);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_DRAGGING", SCROLL_STATE_DRAGGING);
 	ClassDB::bind_integer_constant(get_class_static(), "ScrollState", "SCROLL_STATE_SETTLING", SCROLL_STATE_SETTLING);
+	ClassDB::bind_integer_constant(get_class_static(), "ScrollMode", "SCROLL_MODE_OVERLAY", SCROLL_MODE_OVERLAY);
+	ClassDB::bind_integer_constant(get_class_static(), "ScrollMode", "SCROLL_MODE_INSET", SCROLL_MODE_INSET);
+	ClassDB::bind_integer_constant(get_class_static(), "ScrollMode", "SCROLL_MODE_RESERVE", SCROLL_MODE_RESERVE);
+	ClassDB::bind_integer_constant(get_class_static(), "ScrollMode", "SCROLL_MODE_NEVER_SHOW", SCROLL_MODE_NEVER_SHOW);
 
 	// adapter/layout are runtime assembly, not scene data: they hold RefCounted
 	// objects (not Resources) that the scene saver cannot serialize. Keep them
@@ -129,6 +147,15 @@ void RecyclerView::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "item_extent"), "set_item_extent", "get_default_item_extent");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_measure_items"), "set_auto_measure_items", "get_auto_measure_items");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical_wheel_scrolls_horizontal"), "set_vertical_wheel_scrolls_horizontal", "get_vertical_wheel_scrolls_horizontal");
+	// ScrollContainer-mirroring scroll bar properties (same names, order and
+	// hints as ScrollContainer's Scrollbar group).
+	ADD_GROUP("Scrollbar", "");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "scroll_horizontal", PROPERTY_HINT_NONE, "suffix:px"), "set_h_scroll", "get_h_scroll");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "scroll_vertical", PROPERTY_HINT_NONE, "suffix:px"), "set_v_scroll", "get_v_scroll");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_horizontal_custom_step", PROPERTY_HINT_RANGE, "-1,4096,suffix:px"), "set_horizontal_custom_step", "get_horizontal_custom_step");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_vertical_custom_step", PROPERTY_HINT_RANGE, "-1,4096,suffix:px"), "set_vertical_custom_step", "get_vertical_custom_step");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "horizontal_scroll_mode", PROPERTY_HINT_ENUM, "Overlay,Inset,Reserve,Never Show"), "set_horizontal_scroll_mode", "get_horizontal_scroll_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "vertical_scroll_mode", PROPERTY_HINT_ENUM, "Overlay,Inset,Reserve,Never Show"), "set_vertical_scroll_mode", "get_vertical_scroll_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_bar_auto_hide"), "set_scroll_bar_auto_hide", "get_scroll_bar_auto_hide");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_bar_hide_delay"), "set_scroll_bar_hide_delay", "get_scroll_bar_hide_delay");
 }
@@ -142,6 +169,25 @@ RecyclerView::RecyclerView() {
 	observer.instantiate();
 	observer->set_recycler_view(this);
 	m_data_observer = observer;
+	// Scroll bars, mirroring ScrollContainer's constructor: both axes exist as
+	// hidden children (AUTO hides them until the content overflows); add_item_view
+	// keeps them last in the child order so they sit above the items for both
+	// drawing and input. Focus is off — the RV scrolls with wheel/drag and the
+	// bar only provides the thumb.
+	m_v_scroll = memnew(VScrollBar);
+	m_v_scroll->set_name("_v_scroll");
+	m_v_scroll->set_use_parent_material(true);
+	m_v_scroll->set_focus_mode(FOCUS_NONE);
+	m_v_scroll->set_mouse_filter(MOUSE_FILTER_IGNORE);
+	add_child(m_v_scroll);
+	m_v_scroll->connect("value_changed", callable_mp(this, &RecyclerView::_on_v_scroll_value_changed));
+	m_h_scroll = memnew(HScrollBar);
+	m_h_scroll->set_name("_h_scroll");
+	m_h_scroll->set_use_parent_material(true);
+	m_h_scroll->set_focus_mode(FOCUS_NONE);
+	m_h_scroll->set_mouse_filter(MOUSE_FILTER_IGNORE);
+	add_child(m_h_scroll);
+	m_h_scroll->connect("value_changed", callable_mp(this, &RecyclerView::_on_h_scroll_value_changed));
 }
 
 RecyclerView::~RecyclerView() {
@@ -215,13 +261,11 @@ void RecyclerView::_notification(int p_what) {
 }
 
 void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
-	// Route clicks/drags on the visible scroll bar to it before anything else:
-	// Godot's GUI hit-test can pick the item views over the bar (clipping and
-	// z-order are not considered the same way), so the RV — the fallback
-	// receiver — forwards events that land on the bar instead of scrolling.
-	if (forward_to_scroll_bar(p_event)) {
-		return;
-	}
+	// The scroll bars are kept as the RV's last children (see add_item_view),
+	// so Godot's hit-test — which walks the child list back to front — finds
+	// them before the item views that would otherwise cover their strip, and
+	// routes their input natively. A hidden bar (auto-hide faded out) sets
+	// MOUSE_FILTER_IGNORE and lets the event fall through to the RV.
 	Ref<InputEventMouseButton> mb = p_event;
 	if (mb.is_valid()) {
 		// The touch helper owns an active gesture (long-press drag / swipe):
@@ -350,44 +394,6 @@ void RecyclerView::_gui_input(const Ref<InputEvent> &p_event) {
 	}
 }
 
-// Routes a mouse event that lands on the (visible) scroll bar to it, in the
-// bar's local space. Godot's GUI hit-test can pick the item views over the bar,
-// so the RV — the fallback receiver — forwards instead of scrolling. A hidden
-// bar (auto-hide faded out) sets MOUSE_FILTER_IGNORE and is skipped, letting the
-// click pass through to the RV.
-bool RecyclerView::forward_to_scroll_bar(const Ref<InputEvent> &p_event) {
-	if (m_scroll_bar == nullptr) {
-		return false;
-	}
-	// A hidden bar (auto-hide faded out) is skipped; a drag that already started
-	// keeps routing regardless of position (the thumb can leave the narrow bar).
-	if (m_scroll_bar->get_mouse_filter() == MOUSE_FILTER_IGNORE && !m_scroll_bar_dragging) {
-		return false;
-	}
-	const Ref<InputEventMouse> mouse = p_event;
-	if (mouse.is_valid()) {
-		const Rect2 bar_rect = m_scroll_bar->get_global_rect();
-		const Vector2 global = mouse->get_position() + get_global_position();
-		if (m_scroll_bar_dragging || bar_rect.has_point(global)) {
-			mouse->set_position(global - bar_rect.position);
-			m_scroll_bar->_gui_input(p_event);
-			const Ref<InputEventMouseButton> mb = p_event;
-			if (mb.is_valid() && mb->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT) {
-				m_scroll_bar_dragging = mb->is_pressed();
-			} else {
-				// A motion without the left button: the drag ended without a
-				// release reaching us, stop routing bar events.
-				const Ref<InputEventMouseMotion> mm = p_event;
-				if (mm.is_valid() && !mm->get_button_mask().has_flag(MouseButtonMask::MOUSE_BUTTON_MASK_LEFT)) {
-					m_scroll_bar_dragging = false;
-				}
-			}
-			return true;
-		}
-	}
-	return false;
-}
-
 // Scrolls along the layout's scroll axis. In a horizontal layout the vertical
 // mouse wheel drives horizontal scrolling unless the user opted out, in which
 // case only WHEEL_LEFT/RIGHT scroll horizontally.
@@ -415,6 +421,7 @@ void RecyclerView::_process(double p_delta) {
 	if (m_item_animator.is_valid() && m_item_animator->is_running()) {
 		m_item_animator->animate_step(p_delta);
 	}
+	update_scrollbar_fade(p_delta);
 	if (m_scroll_state != SCROLL_STATE_SETTLING) {
 		return;
 	}
@@ -830,36 +837,301 @@ void RecyclerView::set_snap_helper(const Ref<SnapHelper> &p_helper) {
 	m_snap_helper = p_helper;
 }
 
-void RecyclerView::set_scroll_bar(RecyclerViewScrollBar *p_bar) {
-	if (m_scroll_bar == p_bar) {
+void RecyclerView::set_h_scroll(int p_pos) {
+	set_scroll_offset_horizontal(p_pos);
+}
+
+void RecyclerView::set_v_scroll(int p_pos) {
+	set_scroll_offset(p_pos);
+}
+
+void RecyclerView::set_horizontal_custom_step(float p_step) {
+	m_h_scroll->set_custom_step(p_step);
+}
+
+float RecyclerView::get_horizontal_custom_step() const {
+	return m_h_scroll->get_custom_step();
+}
+
+void RecyclerView::set_vertical_custom_step(float p_step) {
+	m_v_scroll->set_custom_step(p_step);
+}
+
+float RecyclerView::get_vertical_custom_step() const {
+	return m_v_scroll->get_custom_step();
+}
+
+void RecyclerView::set_horizontal_scroll_mode(int p_mode) {
+	if (m_horizontal_scroll_mode == p_mode) {
 		return;
 	}
-	if (m_scroll_bar != nullptr) {
-		m_scroll_bar->unbind();
-		remove_child(m_scroll_bar);
+	m_horizontal_scroll_mode = p_mode;
+	// Any mode switch can change the viewport width (Inset/Reserve carve the
+	// bar's thickness out): wrap_content measurements are width-derived, so
+	// drop the cache exactly like a RESIZED width change, then re-layout.
+	if (m_layout.is_valid()) {
+		if (m_auto_measure_items) {
+			clear_measured_extents();
+		}
+		m_layout->on_data_changed();
 	}
-	m_scroll_bar = p_bar;
-	if (m_scroll_bar != nullptr) {
-		add_child(m_scroll_bar);
-		m_scroll_bar->bind_to(this);
-		m_scroll_bar->set_auto_hide(m_scroll_bar_auto_hide);
-		m_scroll_bar->set_hide_delay(m_scroll_bar_hide_delay);
-		m_scroll_bar->on_scroll_changed();
+	m_bar_inset_active = false;
+	update_scrollbars();
+	request_layout();
+}
+
+void RecyclerView::set_vertical_scroll_mode(int p_mode) {
+	if (m_vertical_scroll_mode == p_mode) {
+		return;
 	}
+	m_vertical_scroll_mode = p_mode;
+	if (m_layout.is_valid()) {
+		if (m_auto_measure_items) {
+			clear_measured_extents();
+		}
+		m_layout->on_data_changed();
+	}
+	m_bar_inset_active = false;
+	update_scrollbars();
+	request_layout();
 }
 
 void RecyclerView::set_scroll_bar_auto_hide(bool p_enabled) {
 	m_scroll_bar_auto_hide = p_enabled;
-	if (m_scroll_bar != nullptr) {
-		m_scroll_bar->set_auto_hide(p_enabled);
-	}
 }
 
 void RecyclerView::set_scroll_bar_hide_delay(float p_delay) {
 	m_scroll_bar_hide_delay = p_delay;
-	if (m_scroll_bar != nullptr) {
-		m_scroll_bar->set_hide_delay(p_delay);
+}
+
+// Syncs the active scroll bar with the layout after every scroll/layout (port
+// of ScrollContainer::_update_scrollbars): picks the bar by the layout's axis,
+// shows/hides it by the scroll mode and the content overflow, maps
+// content/viewport/offset onto max/page/value (mirroring reverse layouts), and
+// re-pins the bars to their edges.
+void RecyclerView::update_scrollbars() {
+	if (m_layout.is_null() || m_adapter.is_null()) {
+		m_v_scroll->set_visible(false);
+		m_h_scroll->set_visible(false);
+		return;
 	}
+	const bool h = m_layout->can_scroll_horizontally();
+	ScrollBar *bar = h ? (ScrollBar *)m_h_scroll : (ScrollBar *)m_v_scroll;
+	ScrollBar *other = h ? (ScrollBar *)m_v_scroll : (ScrollBar *)m_h_scroll;
+	// Only the layout's axis has content; the other bar never shows.
+	other->set_visible(false);
+
+	const int mode = h ? m_horizontal_scroll_mode : m_vertical_scroll_mode;
+	const int viewport = h ? (int)get_viewport_size().x : (int)get_viewport_size().y;
+	// The viewport the bar's visibility is decided against: Overlay and Inset
+	// judge the content at the FULL width (an Inset bar that is already shown
+	// carved the layout, and its content — measured at the carved width — is
+	// compared against the full viewport, so the bar keeps its space until the
+	// content truly fits again; that lag is the hysteresis that stops the
+	// carve from oscillating around the overflow threshold).
+	const int full_viewport = h ? (int)get_size().x : (int)get_size().y;
+	const int content = m_layout->get_content_size(this);
+	bool show = false;
+	if (mode == SCROLL_MODE_OVERLAY) {
+		show = content > viewport; // full viewport: no carve in Overlay
+	} else if (mode == SCROLL_MODE_INSET) {
+		show = content > full_viewport;
+	} else if (mode == SCROLL_MODE_RESERVE) {
+		show = content > viewport; // carved viewport: the space is always taken
+	}
+	// (SCROLL_MODE_NEVER_SHOW keeps the bar hidden; the RV still scrolls.)
+	const bool was_visible = bar->is_visible();
+	bar->set_visible(show);
+	if (show && !was_visible) {
+		// The bar just appeared (the content crossed the overflow threshold):
+		// flash it as a hint — Android's awakenScrollBars — by resetting the
+		// auto-hide idle timer. Without this, a bar that shows up while the RV
+		// has been idle (e.g. appending items until the list overflows, with
+		// the offset untouched) would keep its fade target at 0 and never be
+		// seen at all.
+		m_bar_idle_time = 0.0;
+	}
+	// Inset mode carves the viewport only while the bar is shown; a flip
+	// changes the layout width, so drop the width-derived wrap measurements
+	// (like a RESIZED width change) and re-layout once at the new width.
+	if (mode == SCROLL_MODE_INSET && show != m_bar_inset_active) {
+		m_bar_inset_active = show;
+		if (m_auto_measure_items) {
+			clear_measured_extents();
+		}
+		if (m_layout.is_valid()) {
+			m_layout->on_data_changed();
+		}
+		defer_layout();
+	}
+
+	const int offset = h ? m_scroll_offset_h : m_scroll_offset;
+	if (offset != m_bar_last_offset) {
+		// Scrolling resets the auto-hide idle timer; a data-change layout that
+		// leaves the offset alone must not flash the bar.
+		m_bar_last_offset = offset;
+		m_bar_idle_time = 0.0;
+	}
+	int value = offset;
+	if (m_layout->is_reverse_layout()) {
+		// reverse_layout keeps the raw offset space (0 = content start) but flips
+		// the content->screen mapping, so the bar's value (measured from the
+		// content end, see the mirroring in apply_scroll_bar_value) is the
+		// content-end offset: offset 0 (content start, at the screen bottom)
+		// reads as max_offset, the thumb sits at the bottom of the track.
+		value = MAX(0, content - viewport) - offset;
+	}
+	// The write-back must not be seen as a user scroll: value_changed fires
+	// when the value actually changes (after the user dragged the thumb and
+	// the RV re-anchored the offset), and Range::set_max / set_page clamp the
+	// value internally and re-emit it. Guard the whole range update.
+	m_updating_scrollbars = true;
+	bar->set_max(content);
+	bar->set_page(viewport);
+	bar->set_value(value);
+	m_updating_scrollbars = false;
+	position_scroll_bars();
+}
+
+// Pins both bars to their edges (right for the vertical bar, bottom for the
+// horizontal one), sized by their theme minimum size (ScrollContainer's
+// _update_scrollbar_position; this RV has no margins to offset).
+void RecyclerView::position_scroll_bars() {
+	const float vw = m_v_scroll->get_minimum_size().x;
+	m_v_scroll->set_anchor_and_offset(Side::SIDE_LEFT, ANCHOR_END, -vw);
+	m_v_scroll->set_anchor_and_offset(Side::SIDE_RIGHT, ANCHOR_END, 0.0f);
+	m_v_scroll->set_anchor_and_offset(Side::SIDE_TOP, ANCHOR_BEGIN, 0.0f);
+	m_v_scroll->set_anchor_and_offset(Side::SIDE_BOTTOM, ANCHOR_END, 0.0f);
+	const float hh = m_h_scroll->get_minimum_size().y;
+	m_h_scroll->set_anchor_and_offset(Side::SIDE_LEFT, ANCHOR_BEGIN, 0.0f);
+	m_h_scroll->set_anchor_and_offset(Side::SIDE_RIGHT, ANCHOR_END, 0.0f);
+	m_h_scroll->set_anchor_and_offset(Side::SIDE_TOP, ANCHOR_END, -hh);
+	m_h_scroll->set_anchor_and_offset(Side::SIDE_BOTTOM, ANCHOR_END, 0.0f);
+}
+
+void RecyclerView::_on_v_scroll_value_changed(double p_value) {
+	apply_scroll_bar_value(false, p_value);
+}
+
+void RecyclerView::_on_h_scroll_value_changed(double p_value) {
+	apply_scroll_bar_value(true, p_value);
+}
+
+// A bar value change outside the update guard is a user scroll (thumb drag,
+// track click, wheel, arrows): scroll the RV to the mapped offset. The layout
+// that follows writes the same value back under the guard, so there is no
+// feedback loop.
+void RecyclerView::apply_scroll_bar_value(bool p_horizontal, double p_value) {
+	if (m_updating_scrollbars || m_layout.is_null()) {
+		return;
+	}
+	if (m_layout->can_scroll_horizontally() != p_horizontal) {
+		return;
+	}
+	const int max_offset = p_horizontal ? get_max_scroll_offset_horizontal() : get_max_scroll_offset();
+	int target = (int)(p_value + 0.5);
+	if (m_layout->is_reverse_layout()) {
+		target = max_offset - target;
+	}
+	if (p_horizontal) {
+		set_scroll_offset_horizontal(target);
+	} else {
+		set_scroll_offset(target);
+	}
+	// A change while the left button is held is a thumb drag: keep the fade up
+	// and grow the recycler's cache to a viewport so the jump reuses holders by
+	// type instead of fabricating fresh ones (Android's handleScrollBarDragging
+	// + drag buffering). Programmatic set_value without a press skips this.
+	if (Input::get_singleton()->is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)) {
+		m_bar_dragging = true;
+		m_bar_idle_time = 0.0;
+		if (!m_bar_drag_buffered && m_recycler.is_valid()) {
+			const int viewport = p_horizontal ? (int)get_viewport_size().x : (int)get_viewport_size().y;
+			const int capacity = m_item_extent > 0 ? MAX(1, viewport / m_item_extent) : viewport;
+			m_recycler->begin_drag_buffer(capacity);
+			m_bar_drag_buffered = true;
+		}
+	}
+}
+
+// Auto-hide fade (Android-style scrollbar fading, driven from _process):
+// interpolates the active bar's modulate alpha toward the current target and
+// keeps the drag-buffer cache alive while the user drags the thumb. A thumb
+// drag that leaves the bar (or the RV) is fed synthetic motion events so it
+// keeps following the cursor.
+void RecyclerView::update_scrollbar_fade(double p_delta) {
+	if (m_layout.is_null()) {
+		return;
+	}
+	const bool h = m_layout->can_scroll_horizontally();
+	ScrollBar *bar = h ? (ScrollBar *)m_h_scroll : (ScrollBar *)m_v_scroll;
+
+	// The fade target: hidden bars stay at 0; a shown bar is visible while the
+	// RV scrolls, the thumb is dragged, or the RV has been active within the
+	// hide delay, then fades out (auto-hide applies to every mode that shows
+	// a bar — Inset/Reserve keep their carved space either way).
+	const bool visible = bar->is_visible();
+	const bool interacting = m_bar_dragging || m_scroll_state != SCROLL_STATE_IDLE;
+	if (!visible) {
+		m_bar_target_alpha = 0.0f;
+	} else if (!m_scroll_bar_auto_hide || interacting || m_bar_idle_time < m_scroll_bar_hide_delay) {
+		m_bar_target_alpha = 1.0f;
+	} else {
+		m_bar_target_alpha = 0.0f;
+	}
+	m_bar_idle_time += p_delta;
+
+	// While the user drags the thumb, keep following the mouse even outside the
+	// bar's narrow strip (or the RV): Godot only routes motion events to the
+	// control under the cursor, so poll the system mouse and feed the bar
+	// synthetic motions, mirroring the old incremental drag-following.
+	if (m_bar_dragging && get_viewport() != nullptr && Input::get_singleton() != nullptr) {
+		if (Input::get_singleton()->is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)) {
+			const Vector2 global = get_viewport()->get_mouse_position();
+			if (!bar->get_global_rect().has_point(global)) {
+				Ref<InputEventMouseMotion> mm;
+				mm.instantiate();
+				mm->set_position(global - bar->get_global_position());
+				mm->set_button_mask(MouseButtonMask::MOUSE_BUTTON_MASK_LEFT);
+				bar->_gui_input(mm);
+			}
+		} else {
+			// The release was never routed to the bar (the cursor left it): end
+			// the drag and restore the recycler's cache.
+			m_bar_dragging = false;
+			if (m_bar_drag_buffered && m_recycler.is_valid()) {
+				m_recycler->end_drag_buffer();
+				m_bar_drag_buffered = false;
+			}
+		}
+	}
+	// Cursor inside the RV: moving it resets the idle timer so the bar stays
+	// visible; outside, the bar hides purely on the scroll idle timer.
+	if (get_viewport() != nullptr) {
+		const Vector2 mouse = get_viewport()->get_mouse_position();
+		if (get_global_rect().has_point(mouse)) {
+			if (m_bar_mouse_tracked && mouse != m_bar_last_mouse) {
+				m_bar_idle_time = 0.0;
+			}
+			m_bar_last_mouse = mouse;
+			m_bar_mouse_tracked = true;
+		} else {
+			m_bar_mouse_tracked = false;
+		}
+	}
+	// Advance the alpha toward the target and gate input: a faded-out bar must
+	// not intercept clicks (MOUSE_FILTER_IGNORE), so events fall through to the
+	// RV below it.
+	constexpr float FADE_SPEED = 6.0f;
+	if (m_bar_alpha < m_bar_target_alpha) {
+		m_bar_alpha = MIN(m_bar_alpha + FADE_SPEED * (float)p_delta, m_bar_target_alpha);
+	} else if (m_bar_alpha > m_bar_target_alpha) {
+		m_bar_alpha = MAX(m_bar_alpha - FADE_SPEED * (float)p_delta, m_bar_target_alpha);
+	}
+	Color c = bar->get_modulate();
+	c.a = m_bar_alpha;
+	bar->set_modulate(c);
+	bar->set_mouse_filter(m_bar_alpha > 0.01f ? MOUSE_FILTER_STOP : MOUSE_FILTER_IGNORE);
 }
 
 void RecyclerView::smooth_scroll_to(int p_target, double p_duration) {
@@ -1317,6 +1589,13 @@ void RecyclerView::add_item_view(const Ref<ViewHolder> &p_holder) {
 		// A holder reused after a remove fade-out has a faded alpha; reset it.
 		control->set_modulate(Color(1, 1, 1, 1));
 		add_child(control);
+		// Keep the scroll bars as the RV's last children: Godot's GUI hit-test
+		// and draw order walk the child list back to front, so a bar added
+		// earlier would sit under every later item view — its narrow strip
+		// would be covered and it would never receive input. Move both bars
+		// after the freshly added item (cheap: a handful of children).
+		move_child(m_v_scroll, get_child_count() - 1);
+		move_child(m_h_scroll, get_child_count() - 1);
 		// Port of Adapter.onBindViewHolder: a holder that was mounted before
 		// (its scene ran the ready pass, so @onready references are populated
 		// and survive detach) can bind right away; FLAG_BOUND is cleared by
@@ -1745,7 +2024,22 @@ int RecyclerView::scroll_horizontally(int p_delta) {
 }
 
 Vector2 RecyclerView::get_viewport_size() const {
-	return get_size();
+	Vector2 vp = get_size();
+	// Reserve always carves the active bar's thickness out of the viewport
+	// (the bar reserves its space even when the content fits and it is
+	// hidden). Inset carves only while the bar is shown (m_bar_inset_active);
+	// the flip lags one layout so the visibility decision stays stable.
+	const bool h = m_layout.is_valid() && m_layout->can_scroll_horizontally();
+	const int mode = h ? m_horizontal_scroll_mode : m_vertical_scroll_mode;
+	const bool carved = mode == SCROLL_MODE_RESERVE || (mode == SCROLL_MODE_INSET && m_bar_inset_active);
+	if (h) {
+		if (carved) {
+			vp.y -= m_h_scroll->get_minimum_size().y;
+		}
+	} else if (carved) {
+		vp.x -= m_v_scroll->get_minimum_size().x;
+	}
+	return vp;
 }
 
 void RecyclerView::process_pending_updates() {
@@ -1886,16 +2180,18 @@ void RecyclerView::layout_children() {
 	// starts fresh.
 	m_layout_requested_again = false;
 	m_recycler->set_cache_fallback_enabled(false);
+	// Refresh the scroll bars while the layout's offset table is still the
+	// converged one: LinearLayoutManager::get_content_size re-runs build_layout
+	// (an auto-measure table rebuild) when the table is dirty, and prefetch
+	// below re-measures rows, leaving it dirty — rebuilding here would leave
+	// the RV's internal state (offset/clamp targets) on a different table than
+	// the one the visible items were placed with.
+	update_scrollbars();
 	prefetch_adjacent();
 	if (m_item_touch_helper.is_valid()) {
 		// A swap relayout moved the dragged holder to its new slot; re-pin it to
 		// the finger so it never tears visually (see ItemTouchHelper).
 		m_item_touch_helper->on_after_layout(this);
-	}
-	if (m_scroll_bar != nullptr) {
-		// Refresh the thumb after every scroll/layout (the bar reads the current
-		// offset/content through the RecyclerViewScrollBar data contract).
-		m_scroll_bar->on_scroll_changed();
 	}
 }
 

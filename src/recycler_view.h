@@ -8,7 +8,6 @@
 #include "item_touch_helper.h"
 #include "layout_manager.h"
 #include "recycler.h"
-#include "scroll_bar.h"
 #include "scroll_listener.h"
 #include "snap_helper.h"
 #include "state.h"
@@ -18,6 +17,9 @@
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
+#include <godot_cpp/classes/h_scroll_bar.hpp>
+#include <godot_cpp/classes/scroll_bar.hpp>
+#include <godot_cpp/classes/v_scroll_bar.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/math.hpp>
 #include <godot_cpp/variant/rect2.hpp>
@@ -118,18 +120,54 @@ public:
 	void set_item_animator(const Ref<ItemAnimator> &p_animator);
 	Ref<ItemAnimator> get_item_animator() const { return m_item_animator; }
 
-	// Scroll bar (protocol: RecyclerViewScrollBar, default DefaultScrollBar). Attached as a
-	// child Control pinned to the trailing edge; the RV notifies it on every
-	// scroll/layout. The bar is owned by the RV's node tree (add_child), so it
-	// must NOT be freed manually. Pass null to remove the bar.
-	void set_scroll_bar(RecyclerViewScrollBar *p_bar);
-	RecyclerViewScrollBar *get_scroll_bar() const { return m_scroll_bar; }
-	// Whether the attached scroll bar fades out while the RV sits idle
-	// (forwarded to the bar; default true, adjustable in the inspector).
+	// Scroll bars: the RV owns a VScrollBar and HScrollBar (created in the
+	// constructor, hidden by default), mirroring ScrollContainer: the axis
+	// driven by the layout (can_scroll_horizontally) is the active one, the
+	// other stays hidden. They are kept as the RV's last children (see
+	// add_item_view) so Godot's hit-test finds them above the item views and
+	// routes their input natively, and they draw over the items. Must not be
+	// freed manually; get_v_scroll_bar / get_h_scroll_bar hand out the
+	// instances for theme styling (add_theme_stylebox_override, ...).
+	VScrollBar *get_v_scroll_bar() const { return m_v_scroll; }
+	HScrollBar *get_h_scroll_bar() const { return m_h_scroll; }
+
+	// Android-scrollbarStyle-style surface:
+	//   scroll_horizontal / scroll_vertical (px): current offset along the axis.
+	//   scroll_*_custom_step (px, -1 default): forwarded to the bar (wheel/arrow
+	//     step; the thumb drag itself is ratio-mapped, not stepped).
+	//   horizontal_scroll_mode / vertical_scroll_mode (bar style for the axis):
+	//     Overlay (default) — drawn over the items, no space taken, shown only
+	//       when the content overflows;
+	//     Inset — pushes the content aside (items are laid out clear of the bar)
+	//       while shown, which follows the overflow like Overlay (the content
+	//       grows back to full width when the bar hides);
+	//     Reserve — always pushes the content aside (the bar's space stays
+	//       reserved even when the content fits and the bar is hidden);
+	//     Never Show — the bar is never shown (the RV still scrolls).
+	void set_h_scroll(int p_pos);
+	int get_h_scroll() const { return m_scroll_offset_h; }
+	void set_v_scroll(int p_pos);
+	int get_v_scroll() const { return m_scroll_offset; }
+	void set_horizontal_custom_step(float p_step);
+	float get_horizontal_custom_step() const;
+	void set_vertical_custom_step(float p_step);
+	float get_vertical_custom_step() const;
+	enum ScrollMode {
+		SCROLL_MODE_OVERLAY = 0,
+		SCROLL_MODE_INSET = 1,
+		SCROLL_MODE_RESERVE = 2,
+		SCROLL_MODE_NEVER_SHOW = 3,
+	};
+	void set_horizontal_scroll_mode(int p_mode);
+	int get_horizontal_scroll_mode() const { return m_horizontal_scroll_mode; }
+	void set_vertical_scroll_mode(int p_mode);
+	int get_vertical_scroll_mode() const { return m_vertical_scroll_mode; }
+	// Whether the visible scroll bar fades out while the RV sits idle (default
+	// true, Android-style). Applied to every mode that shows a bar.
 	void set_scroll_bar_auto_hide(bool p_enabled);
 	bool get_scroll_bar_auto_hide() const { return m_scroll_bar_auto_hide; }
 	// Seconds the bar stays visible after the last activity before auto-hiding
-	// (forwarded to the bar; default 0.5, Android's default fade delay).
+	// (default 0.5, Android's default fade delay).
 	void set_scroll_bar_hide_delay(float p_delay);
 	float get_scroll_bar_hide_delay() const { return m_scroll_bar_hide_delay; }
 
@@ -228,10 +266,22 @@ private:
 	void attach_to_adapter();
 	void process_pending_updates();
 	void mark_data_changed();
-	// Forwards a mouse event landing on the visible scroll bar to it (Godot's
-	// GUI hit-test can pick the item views over the bar). Returns true if the
-	// bar handled the event.
-	bool forward_to_scroll_bar(const Ref<InputEvent> &p_event);
+	// Scroll bar plumbing (port of ScrollContainer's scrollbar management):
+	// syncs range/visibility/anchors after every layout, applies a bar
+	// value_changed to the RV offset (reverse-layout mirroring), and drives
+	// the auto-hide fade + drag-buffer synthesis in _process.
+	void update_scrollbars();
+	void position_scroll_bars();
+	void _on_v_scroll_value_changed(double p_value);
+	void _on_h_scroll_value_changed(double p_value);
+	void apply_scroll_bar_value(bool p_horizontal, double p_value);
+	void update_scrollbar_fade(double p_delta);
+	// True while update_scrollbars writes the bar's value: the value_changed
+	// callback must not treat the write-back as a user scroll.
+	bool m_updating_scrollbars = false;
+	// Whether the scroll-bar drag cache buffer is currently active (grows the
+	// recycler's cache to a viewport while the user drags the thumb).
+	bool m_bar_drag_buffered = false;
 
 	// Scroll state machine internals.
 	int get_max_scroll_offset();
@@ -384,13 +434,34 @@ private:
 	Ref<ItemAnimator> m_item_animator;
 	Ref<ItemTouchHelper> m_item_touch_helper;
 	Ref<SnapHelper> m_snap_helper;
-	RecyclerViewScrollBar *m_scroll_bar = nullptr;
+	// Internal scroll bars, created in the constructor (see the public API
+	// comment above for the ScrollContainer-mirroring design).
+	VScrollBar *m_v_scroll = nullptr;
+	HScrollBar *m_h_scroll = nullptr;
+	int m_horizontal_scroll_mode = SCROLL_MODE_OVERLAY;
+	int m_vertical_scroll_mode = SCROLL_MODE_OVERLAY;
+	// Inset mode state: true while the bar is shown and the viewport is carved.
+	// The visibility decision is made against the full (uncarved) viewport, and
+	// the carve follows it with one layout's lag, which adds hysteresis — a bar
+	// that just appeared keeps its space until the content truly fits again.
+	bool m_bar_inset_active = false;
 	bool m_scroll_bar_auto_hide = true;
 	float m_scroll_bar_hide_delay = 0.5f;
-	// True while a drag started on the scroll bar is active: the RV keeps
-	// routing mouse events to it even when the thumb is dragged outside the
-	// bar's narrow strip.
-	bool m_scroll_bar_dragging = false;
+	// Auto-hide fade state (Android-style): alpha interpolation, idle timer and
+	// mouse tracking for the active scroll bar, driven from _process.
+	float m_bar_alpha = 0.0f;
+	float m_bar_target_alpha = 0.0f;
+	double m_bar_idle_time = 0.0;
+	// Last observed scroll offset: the idle timer only resets when the offset
+	// actually moves (scrolling), not on every layout (a data mutation re-lays
+	// out and re-syncs the bar, but the bar should stay hidden, not flash).
+	int m_bar_last_offset = -1;
+	Vector2 m_bar_last_mouse = Vector2(0.0f, 0.0f);
+	bool m_bar_mouse_tracked = false;
+	// True while the user drags the bar's thumb (synthesized from value_changed
+	// bursts): keeps the fade up, feeds motion events to the bar outside its
+	// strip, and holds the drag-buffer cache until the mouse releases.
+	bool m_bar_dragging = false;
 	bool m_layout_deferred = false;
 	// Set when a layout request arrives while a layout is already running (e.g.
 	// a RESIZED notification for the size being finalized). The running layout

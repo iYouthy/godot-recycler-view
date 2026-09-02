@@ -182,25 +182,29 @@ func test_smooth_scroll_to_position_reaches_target() -> void:
 	_free(rv)
 
 
-func test_scroll_bar_reverse_thumb_at_bottom() -> void:
+func test_scroll_bar_reverse_value_mirrored() -> void:
 	var s := await _make_rv(100)
 	var rv: RecyclerView = s.rv
 	var layout := LinearLayoutManager.new()
 	layout.set_reverse_layout(true)
 	rv.set_layout(layout)
-	rv.set_scroll_bar(DefaultScrollBar.new())
 	rv.request_layout()
 	await get_tree().process_frame
-	var bar: DefaultScrollBar = rv.get_scroll_bar()
-	var thumb: Rect2 = bar.get_thumb_rect()
+	var bar: ScrollBar = rv.get_v_scroll_bar()
+	assert_that(bar.is_visible()).is_true()
 	# offset 0 = content start; on screen that region is at the bottom, so the
-	# thumb (reported from the content end) sits at the bottom of the track.
-	assert_that(thumb.size.y).is_greater(0.0)
-	assert_that(thumb.position.y).is_greater(thumb.size.y * 2)
-	# Scrolling deeper moves the thumb up (mirrored thumb).
+	# bar's value (measured from the content end) sits at max_offset: the thumb
+	# is at the bottom of the track.
+	assert_that(int(bar.get_value())).is_equal(3400)
+	# Scrolling deeper moves the value down (mirrored thumb); the RV clamps the
+	# value space to [0, content - viewport].
 	rv.set_scroll_offset(3400)
 	await get_tree().process_frame
-	assert_that(bar.get_thumb_rect().position.y).is_less(thumb.position.y)
+	assert_that(int(bar.get_value())).is_equal(0)
+	# Dragging the mirrored bar to its top scrolls to the content end.
+	bar.set_value(0)
+	await get_tree().process_frame
+	assert_that(rv.get_scroll_offset()).is_equal(3400)
 	_free(rv)
 
 

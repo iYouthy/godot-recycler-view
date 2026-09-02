@@ -158,7 +158,7 @@ public:
 
 private:
 	// Android's RecycledViewPool default: 5 per view type. Scroll-bar dragging is
-	// incremental (see DefaultScrollBar::scroll_by_delta), so the viewport only
+	// incremental (see the scroll-bar drag synthesis), so the viewport only
 	// shifts a fraction per frame and the reuse chain stays warm.
 	static const int DEFAULT_MAX_SCRAP = 5;
 

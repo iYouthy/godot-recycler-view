@@ -1,6 +1,7 @@
-# Tests for the ScrollBar protocol (base Control) and DefaultScrollBar: attach
-# via RecyclerView.set_scroll_bar, scroll notification + data contract, thumb
-# geometry, custom subclassing, and auto-hide.
+# Tests for the built-in ScrollBar integration: the RV owns an internal
+# VScrollBar/HScrollBar (ScrollContainer-style), drives range/visibility by the
+# scroll mode after every layout, mirrors reverse layouts, and auto-hides the
+# bar via an alpha fade (Android-style).
 
 extends GdUnitTestSuite
 
@@ -23,267 +24,345 @@ class BarAdapter extends Adapter:
 		vh.set_control(label)
 		return vh
 
-
-class CountingBar extends RecyclerViewScrollBar:
-	var calls := 0
-
-	func _on_scroll_changed() -> void:
-		calls += 1
+	func _bind_item(holder: ViewHolder, position: int) -> void:
+		pass
 
 
-func _make_rv(with_bar: bool) -> Dictionary:
+func _make_rv(count: int, horizontal := false) -> Dictionary:
 	get_window().size = Vector2i(1920, 1080)
 	get_window().content_scale_size = Vector2i(1920, 1080)
 	await get_tree().process_frame
 	var rv := RecyclerView.new()
-	rv.set_size(Vector2(360, 600))
+	rv.set_size(Vector2(360, 600) if not horizontal else Vector2(600, 360))
 	var adapter := BarAdapter.new()
-	adapter.count = 10000
-	rv.set_item_extent(40)
-	rv.set_adapter(adapter)
-	rv.set_layout(LinearLayoutManager.new())
-	if with_bar:
-		rv.set_scroll_bar(DefaultScrollBar.new())
-	get_tree().root.add_child(rv)
-	rv.request_layout()
-	await get_tree().process_frame
-	return { "rv": rv, "adapter": adapter }
-
-
-func _make_h_rv(with_bar: bool) -> Dictionary:
-	get_window().size = Vector2i(1920, 1080)
-	get_window().content_scale_size = Vector2i(1920, 1080)
-	await get_tree().process_frame
-	var rv := RecyclerView.new()
-	rv.set_size(Vector2(600, 360))
-	var adapter := BarAdapter.new()
-	adapter.count = 10000
+	adapter.count = count
 	rv.set_item_extent(40)
 	rv.set_adapter(adapter)
 	var layout := LinearLayoutManager.new()
-	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
+	if horizontal:
+		layout.set_orientation(LinearLayoutManager.HORIZONTAL)
 	rv.set_layout(layout)
-	if with_bar:
-		rv.set_scroll_bar(DefaultScrollBar.new())
 	get_tree().root.add_child(rv)
 	rv.request_layout()
 	await get_tree().process_frame
 	return { "rv": rv, "adapter": adapter }
 
 
-func test_set_scroll_bar_attaches_as_child() -> void:
-	var s := await _make_rv(true)
+func test_internal_bars_exist_and_active_axis_follows_layout() -> void:
+	var s := await _make_rv(10000)
 	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	assert_that(bar).is_not_null()
-	assert_that(bar.get_parent()).is_same(rv)
-	# A vertical RV picks the vertical axis for its bar.
-	assert_that(bar.get_axis()).is_equal(RecyclerViewScrollBar.SCROLL_BAR_VERTICAL)
+	# Both bars exist as internal children of the RV.
+	assert_that(rv.get_v_scroll_bar()).is_not_null()
+	assert_that(rv.get_h_scroll_bar()).is_not_null()
+	assert_that(rv.get_v_scroll_bar().get_parent()).is_same(rv)
+	# A vertical layout drives the vertical bar; the horizontal one stays hidden.
+	assert_that(rv.get_v_scroll_bar().is_visible()).is_true()
+	assert_that(rv.get_h_scroll_bar().is_visible()).is_false()
 	rv.free_items()
 	rv.free()
 
 
-func test_scroll_notifies_and_offset_follows() -> void:
-	var s := await _make_rv(true)
+func test_auto_mode_hides_bar_when_content_fits() -> void:
+	# A short list (5x40 = 200px) fits the 600px viewport: no scrolling is
+	# possible, so the bar must not show at all (Auto mode, default).
+	var s := await _make_rv(5)
 	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
+	var bar = rv.get_v_scroll_bar()
+	assert_that(bar.is_visible()).is_false()
+	# Growing the content past the viewport brings the bar up.
+	s.adapter.count = 10000
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	assert_that(bar.is_visible()).is_true()
+	# ...and shrinking it back hides the bar again.
+	s.adapter.count = 5
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	assert_that(bar.is_visible()).is_false()
+	rv.free_items()
+	rv.free()
+
+
+func test_bar_range_maps_offset_and_scrolls_rv() -> void:
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
+	# Content 400000px, viewport 600px: max = content, page = viewport.
+	assert_that(int(bar.get_max())).is_equal(400000)
+	assert_that(int(bar.get_page())).is_equal(600)
+	# RV scroll -> the bar's value follows the offset.
 	rv.scroll_vertically(400)
-	assert_that(bar.get_offset()).is_equal(400)
+	assert_that(int(bar.get_value())).is_equal(400)
 	rv.scroll_vertically(-100)
-	assert_that(bar.get_offset()).is_equal(300)
+	assert_that(int(bar.get_value())).is_equal(300)
+	# Bar value_changed (user scroll) -> the RV scrolls to it.
+	bar.set_value(2000)
+	assert_that(rv.get_scroll_offset()).is_equal(2000)
 	rv.free_items()
 	rv.free()
 
 
-func test_thumb_geometry_follows_offset() -> void:
-	var s := await _make_rv(true)
+func test_scroll_properties_alias_offsets() -> void:
+	var s := await _make_rv(10000)
 	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	# Content 400000px, viewport 600px: a tiny thumb pinned at the top.
-	var top: Rect2 = bar.get_thumb_rect()
-	assert_that(int(top.position.y)).is_equal(0)
-	assert_that(top.size.y).is_greater(0)
-	# Scroll to the middle of the content: the thumb moves down.
-	rv.scroll_vertically(200000)
-	var mid: Rect2 = bar.get_thumb_rect()
-	assert_that(mid.position.y).is_greater(0)
-	assert_that(mid.position.y).is_greater(top.position.y)
+	rv.set_v_scroll(500)
+	assert_that(rv.get_v_scroll()).is_equal(500)
+	assert_that(rv.get_scroll_offset()).is_equal(500)
 	rv.free_items()
 	rv.free()
 
 
-func test_custom_scroll_bar_receives_notifications() -> void:
-	var s := await _make_rv(false)
+func test_horizontal_layout_drives_h_bar_and_scrolls_rv() -> void:
+	var s := await _make_rv(10000, true)
 	var rv: RecyclerView = s.rv
-	var bar := CountingBar.new()
-	rv.set_scroll_bar(bar)
-	var calls_after_attach := bar.calls
-	# Scroll and layout both notify the bar.
-	rv.scroll_vertically(200)
-	assert_that(bar.calls).is_greater(calls_after_attach)
+	var bar = rv.get_h_scroll_bar()
+	assert_that(bar.is_visible()).is_true()
+	assert_that(rv.get_v_scroll_bar().is_visible()).is_false()
+	rv.scroll_horizontally(400)
+	assert_that(int(bar.get_value())).is_equal(400)
+	bar.set_value(1000)
+	assert_that(rv.get_scroll_offset_horizontal()).is_equal(1000)
 	rv.free_items()
 	rv.free()
 
 
-func test_auto_hide_default_on_and_hides_after_idle() -> void:
-	var s := await _make_rv(true)
+func test_never_show_hides_bar_but_keeps_scrolling() -> void:
+	var s := await _make_rv(10000)
 	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	# Default is on, forwarded to the bar.
+	rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_NEVER_SHOW)
+	assert_that(rv.get_v_scroll_bar().is_visible()).is_false()
+	# The RV itself still scrolls (wheel/drag/set_v_scroll).
+	rv.set_v_scroll(800)
+	assert_that(rv.get_scroll_offset()).is_equal(800)
+	rv.free_items()
+	rv.free()
+
+
+func test_overlay_is_default_and_never_show_hides_bar() -> void:
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	# Overlay is the default for both axes.
+	assert_that(rv.get_vertical_scroll_mode()).is_equal(RecyclerView.SCROLL_MODE_OVERLAY)
+	assert_that(rv.get_horizontal_scroll_mode()).is_equal(RecyclerView.SCROLL_MODE_OVERLAY)
+	rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_NEVER_SHOW)
+	assert_that(rv.get_v_scroll_bar().is_visible()).is_false()
+	rv.free_items()
+	rv.free()
+
+
+func test_custom_step_forwards_to_bar() -> void:
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	assert_that(rv.get_vertical_custom_step()).is_equal(-1.0)
+	rv.set_vertical_custom_step(2.0)
+	assert_that(rv.get_vertical_custom_step()).is_equal(2.0)
+	assert_that(rv.get_v_scroll_bar().get_custom_step()).is_equal(2.0)
+	rv.free_items()
+	rv.free()
+
+
+func test_reserve_mode_carves_viewport() -> void:
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
+	var full_vp: Vector2 = rv.get_size()
+	# Auto mode: the bar overlays the items, the viewport stays full size.
+	assert_that(rv.get_viewport_size().x).is_equal(full_vp.x)
+	# Reserve mode: the bar's thickness is carved out of the viewport.
+	rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_RESERVE)
+	var carved: Vector2 = rv.get_viewport_size()
+	assert_that(carved.x).is_less(full_vp.x)
+	assert_that(int(carved.x)).is_equal(int(full_vp.x - bar.get_minimum_size().x))
+	rv.free_items()
+	rv.free()
+
+
+func test_inset_mode_carves_only_while_shown() -> void:
+	# Inset pushes the content aside while the bar is shown (content overflows)
+	# and grows it back to full width when the bar hides (content fits).
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
+	var full_w: float = rv.get_size().x
+	rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_INSET)
+	await get_tree().process_frame
+	assert_that(bar.is_visible()).is_true()
+	assert_that(rv.get_viewport_size().x).is_less(full_w)
+	var item0 = rv.get_child_holder_at(0)
+	if item0:
+		assert_that(item0.get_control().size.x).is_less(full_w)
+	# The content shrinks below one screen: the bar hides and the content
+	# reclaims the full width (no leftover reserved strip).
+	s.adapter.count = 5
+	rv.notify_data_changed()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_that(bar.is_visible()).is_false()
+	assert_that(rv.get_viewport_size().x).is_equal(full_w)
+	var item1 = rv.get_child_holder_at(0)
+	if item1:
+		assert_that(item1.get_control().size.x).is_equal(full_w)
+	rv.free_items()
+	rv.free()
+
+
+func test_reserve_mode_reserves_space_even_when_hidden() -> void:
+	# Reserve keeps the bar's space carved out even when the content fits and
+	# the bar itself is hidden (no layout shift when content grows again).
+	var s := await _make_rv(5)
+	var rv: RecyclerView = s.rv
+	rv.set_vertical_scroll_mode(RecyclerView.SCROLL_MODE_RESERVE)
+	await get_tree().process_frame
+	assert_that(rv.get_v_scroll_bar().is_visible()).is_false()
+	assert_that(rv.get_viewport_size().x).is_less(rv.get_size().x)
+	rv.free_items()
+	rv.free()
+
+
+func test_auto_hide_defaults_on_and_fades_after_idle() -> void:
+	var s := await _make_rv(10000)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
 	assert_that(rv.get_scroll_bar_auto_hide()).is_true()
-	assert_that(bar.get_auto_hide()).is_true()
-	bar.set_hide_delay(0.2)  # shorten the idle delay for the test
-	# Scroll: the bar fades in.
+	rv.set_scroll_bar_hide_delay(0.2)  # shorten the idle delay for the test
+	# Scroll: the bar fades in and stays visible while recently active.
 	rv.scroll_vertically(200)
 	await get_tree().create_timer(0.1).timeout
 	assert_that(bar.get_modulate().a).is_greater(0.5)
-	# Sit idle past the hide delay: the bar fades out.
-	await get_tree().create_timer(0.5).timeout
-	assert_that(bar.get_modulate().a).is_less(0.5)
+	# Sit idle past the hide delay: the bar fades out (and stops taking input).
+	await get_tree().create_timer(0.6).timeout
+	assert_that(bar.get_modulate().a).is_less(0.05)
+	assert_that(bar.get_mouse_filter()).is_equal(Control.MOUSE_FILTER_IGNORE)
 	rv.free_items()
 	rv.free()
 
 
 func test_auto_hide_off_keeps_bar_visible() -> void:
-	var s := await _make_rv(true)
+	var s := await _make_rv(10000)
 	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
+	var bar = rv.get_v_scroll_bar()
 	rv.set_scroll_bar_auto_hide(false)
-	assert_that(bar.get_auto_hide()).is_false()
 	rv.scroll_vertically(200)
 	await get_tree().create_timer(0.8).timeout
-	# Never fades out.
+	# Never fades out (past the 0.5s hide delay).
 	assert_that(bar.get_modulate().a).is_greater(0.5)
 	rv.free_items()
 	rv.free()
 
 
-func test_bar_hidden_when_content_fits() -> void:
-	# No scrolling is possible when the content fits the viewport, so the bar
-	# must hide entirely — even with auto_hide off ("always show" means "don't
-	# fade when idle", not "show with nothing to scroll").
-	var s := await _make_rv(true)
+func test_bar_stays_faded_when_content_fits() -> void:
+	# A short list must not flash the bar on load: with nothing to scroll the
+	# bar is hidden and its alpha stays 0 past the hide delay.
+	var s := await _make_rv(5)
 	var rv: RecyclerView = s.rv
-	var adapter: BarAdapter = s.adapter
-	var bar = rv.get_scroll_bar()
-	rv.set_scroll_bar_auto_hide(false)
-	# Shrink the content (5x40 = 200px) below the 600px viewport and re-layout.
-	adapter.count = 5
-	rv.notify_data_changed()
-	await get_tree().process_frame
-	assert_that(int(bar.get_thumb_rect().size.y)).is_equal(0)
-	# The bar was visible before the shrink (auto_hide off); it fades out.
-	await get_tree().create_timer(0.5).timeout
+	var bar = rv.get_v_scroll_bar()
+	await get_tree().create_timer(0.8).timeout
 	assert_that(bar.get_modulate().a).is_less(0.05)
 	rv.free_items()
 	rv.free()
 
 
-func test_bar_reappears_when_content_grows_past_viewport() -> void:
-	# The fits-check runs every frame: growing the content back past the
-	# viewport brings the bar up again (auto_hide off keeps it up).
-	var s := await _make_rv(true)
+# The bars are the RV's last children, so Godot's hit-test finds them above
+# the item views and routes their input natively. Clicking the track below the
+# thumb pages forward (+page); above it pages back (-page).
+func test_bar_flashes_when_content_grows_past_viewport() -> void:
+	# Appending items until the list overflows must flash the bar once (the
+	# auto-hide idle timer resets on appearance), then fade it out again.
+	var s := await _make_rv(5)
 	var rv: RecyclerView = s.rv
 	var adapter: BarAdapter = s.adapter
-	var bar = rv.get_scroll_bar()
-	rv.set_scroll_bar_auto_hide(false)
-	adapter.count = 5
+	var bar = rv.get_v_scroll_bar()
+	rv.set_scroll_bar_hide_delay(0.2)
+	# Grow the content past the 600px viewport (5 -> 40 items).
+	adapter.count = 40
 	rv.notify_data_changed()
-	await get_tree().process_frame
+	await get_tree().create_timer(0.08).timeout
+	# The bar appeared and is fading in (visible hint, not permanently hidden).
+	assert_that(bar.is_visible()).is_true()
+	assert_that(bar.get_modulate().a).is_greater(0.3)
+	# Past the hide delay it fades out again.
 	await get_tree().create_timer(0.6).timeout
 	assert_that(bar.get_modulate().a).is_less(0.05)
-	# Grow the content back past the viewport.
-	adapter.count = 10000
-	rv.notify_data_changed()
+	rv.free_items()
+	rv.free()
+
+
+func test_bar_track_click_pages_in_direction() -> void:
+	var s := await _make_rv(1000)  # 40000px content, 600px viewport
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
+	rv.set_scroll_bar_auto_hide(false)
+	rv.set_scroll_offset(10000)  # thumb near the top (25%)
 	await get_tree().process_frame
-	await get_tree().create_timer(0.4).timeout
-	assert_that(int(bar.get_thumb_rect().size.y)).is_greater(0)
-	assert_that(bar.get_modulate().a).is_greater(0.5)
+	var bar_rect := bar.get_global_rect()
+	# Click well below the thumb: pages forward.
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = bar_rect.position + Vector2(bar_rect.size.x * 0.5, bar_rect.size.y * 0.75)
+	rv.get_viewport().push_input(press)
+	var rel := InputEventMouseButton.new()
+	rel.button_index = MOUSE_BUTTON_LEFT
+	rel.pressed = false
+	rel.position = press.position
+	rv.get_viewport().push_input(rel)
+	assert_that(rv.get_scroll_offset()).is_equal(10600)
+	# Click above the thumb: pages back.
+	press.position = bar_rect.position + Vector2(bar_rect.size.x * 0.5, bar_rect.size.y * 0.1)
+	rel.position = press.position
+	rv.get_viewport().push_input(press)
+	rv.get_viewport().push_input(rel)
+	assert_that(rv.get_scroll_offset()).is_equal(10000)
 	rv.free_items()
 	rv.free()
 
 
-func test_bar_stays_hidden_on_load_when_content_fits() -> void:
-	# A list shorter than the viewport must not flash the bar on load:
-	# auto-hide's 0.5s "show while recently active" window must not apply
-	# when there is nothing to scroll.
-	get_window().size = Vector2i(1920, 1080)
-	get_window().content_scale_size = Vector2i(1920, 1080)
+# Dragging the thumb scrolls in the standard direction (thumb down = content
+# up / scrolling forward, like ScrollContainer), keeps following the cursor
+# once the drag leaves the bar's narrow strip, and ends on release.
+func test_bar_thumb_drag_follows_mouse_outside_strip() -> void:
+	var s := await _make_rv(1000)  # 40000px content -> a fat thumb (page ratio 600/40000)
+	var rv: RecyclerView = s.rv
+	var bar = rv.get_v_scroll_bar()
+	rv.set_scroll_bar_auto_hide(false)
+	rv.set_scroll_offset(20000)  # thumb centered on the track
 	await get_tree().process_frame
-	var rv := RecyclerView.new()
-	rv.set_size(Vector2(360, 600))
-	var adapter := BarAdapter.new()
-	adapter.count = 5  # 5x40 = 200px, fits the 600px viewport
-	rv.set_item_extent(40)
-	rv.set_adapter(adapter)
-	rv.set_layout(LinearLayoutManager.new())
-	rv.set_scroll_bar(DefaultScrollBar.new())
-	get_tree().root.add_child(rv)
-	rv.request_layout()
-	await get_tree().process_frame
-	var bar = rv.get_scroll_bar()
-	# Mid-hide-delay: the old code would have faded the bar fully in here.
-	await get_tree().create_timer(0.3).timeout
-	assert_that(bar.get_modulate().a).is_less(0.5)
-	# Well past the 0.5s hide delay: still never appeared.
-	await get_tree().create_timer(0.5).timeout
-	assert_that(bar.get_modulate().a).is_less(0.05)
-	rv.free_items()
-	rv.free()
-
-
-func test_hide_delay_defaults_to_android_and_forwards() -> void:
-	var s := await _make_rv(true)
-	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	# Android's default scrollbar fade delay is 500ms.
-	assert_that(rv.get_scroll_bar_hide_delay()).is_equal(0.5)
-	assert_that(bar.get_hide_delay()).is_equal(0.5)
-	# The RV inspector setting forwards to the bar.
-	rv.set_scroll_bar_hide_delay(1.0)
-	assert_that(rv.get_scroll_bar_hide_delay()).is_equal(1.0)
-	assert_that(bar.get_hide_delay()).is_equal(1.0)
-	rv.free_items()
-	rv.free()
-
-
-func test_horizontal_layout_picks_horizontal_axis_and_pins_bottom() -> void:
-	var s := await _make_h_rv(true)
-	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	# A horizontal RV picks the horizontal axis for its bar, pinned to the bottom.
-	assert_that(bar.get_axis()).is_equal(RecyclerViewScrollBar.SCROLL_BAR_HORIZONTAL)
-	var rv_bottom := rv.get_global_rect().end.y
-	var bar_top := bar.get_global_rect().position.y
-	assert_that(absf(rv_bottom - bar_top - bar.get_thickness())).is_less(2.0)
-	rv.free_items()
-	rv.free()
-
-
-func test_horizontal_offset_follows_scroll() -> void:
-	var s := await _make_h_rv(true)
-	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	rv.scroll_horizontally(400)
-	assert_that(bar.get_offset()).is_equal(400)
-	rv.scroll_horizontally(-100)
-	assert_that(bar.get_offset()).is_equal(300)
-	rv.free_items()
-	rv.free()
-
-
-func test_horizontal_thumb_moves_right_on_scroll() -> void:
-	var s := await _make_h_rv(true)
-	var rv: RecyclerView = s.rv
-	var bar = rv.get_scroll_bar()
-	# Content 400000px, viewport 600px: a tiny thumb pinned at the left.
-	var top: Rect2 = bar.get_thumb_rect()
-	assert_that(int(top.position.x)).is_equal(0)
-	assert_that(top.size.x).is_greater(0)
-	# Scroll to the middle of the content: the thumb moves right.
-	rv.scroll_horizontally(200000)
-	var mid: Rect2 = bar.get_thumb_rect()
-	assert_that(mid.position.x).is_greater(0)
-	assert_that(mid.position.x).is_greater(top.position.x)
+	var bar_rect := bar.get_global_rect()
+	var thumb_y := bar_rect.position.y + bar_rect.size.y * 0.5
+	# Press on the thumb and drag DOWN 60px: the offset must grow by roughly the
+	# 60px / 600px track share of the range (~4000), not a page step.
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = bar_rect.position + Vector2(bar_rect.size.x * 0.5, thumb_y)
+	rv.get_viewport().push_input(press)
+	var mm := InputEventMouseMotion.new()
+	mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+	mm.position = press.position + Vector2(0, 60)
+	rv.get_viewport().push_input(mm)
+	assert_that(rv.get_scroll_offset()).is_greater(23000)
+	assert_that(rv.get_scroll_offset()).is_less(28000)
+	# Drag further down but onto the RV's item area (off the bar strip): the
+	# drag keeps following the cursor (events stay routed to the bar while the
+	# button is held).
+	var far := press.position + Vector2(-bar_rect.size.x * 2, 150)
+	mm.position = far
+	rv.get_viewport().push_input(mm)
+	assert_that(rv.get_scroll_offset()).is_greater(30000)
+	# Drag back up onto the item area above the bar: the offset comes back down.
+	mm.position = far + Vector2(0, -220)
+	rv.get_viewport().push_input(mm)
+	assert_that(rv.get_scroll_offset()).is_less(30000)
+	# Release ends the drag.
+	var rel := InputEventMouseButton.new()
+	rel.button_index = MOUSE_BUTTON_LEFT
+	rel.pressed = false
+	rel.position = mm.position
+	rv.get_viewport().push_input(rel)
+	var after_release := rv.get_scroll_offset()
+	# A motion without the left button no longer scrolls the bar.
+	mm.position = mm.position + Vector2(0, -50)
+	rv.get_viewport().push_input(mm)
+	assert_that(rv.get_scroll_offset()).is_equal(after_release)
 	rv.free_items()
 	rv.free()

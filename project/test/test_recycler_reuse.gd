@@ -172,11 +172,10 @@ func test_scroll_and_insert_mid_animation_no_crash_created_bounded() -> void:
 	rv.free()
 
 
-# Dragging the scroll bar is incremental (Android's handleScrollBarDragging):
-# each motion advances the thumb by the mouse delta, so the viewport shifts only
-# a fraction of its size per frame. The cached holders' positions overlap frame
-# to frame, so the position-bound cache + pool absorb the recycling and no fresh
-# holder is fabricated while dragging.
+# Scrolling in large per-frame steps (a scroll-bar drag or a big jump) reuses
+# the position-cached holders through the cache + pool: each frame the viewport
+# shifts only a fraction of its size, so the cached holders' positions overlap
+# frame to frame and no fresh holder is fabricated while dragging.
 func test_scroll_bar_drag_created_bounded() -> void:
 	get_window().size = Vector2i(1920, 1080)
 	get_window().content_scale_size = Vector2i(1920, 1080)
@@ -191,7 +190,6 @@ func test_scroll_bar_drag_created_bounded() -> void:
 	var layout := LinearLayoutManager.new()
 	layout.set_orientation(LinearLayoutManager.HORIZONTAL)
 	rv.set_layout(layout)
-	rv.set_scroll_bar(DefaultScrollBar.new())
 	get_tree().root.add_child(rv)
 	rv.request_layout()
 	await get_tree().process_frame

@@ -21,7 +21,8 @@ incremental updates and apply them at the end of the frame. Scrolling is driven 
 mouse/touch input handled internally or by the [code]scroll_*[/code] / [code]set_scroll_offset*[/code]
 methods. Optional features: item animations ([method set_item_animator]), drag &amp; swipe
 ([method set_item_touch_helper]), snapping ([method set_snap_helper]) and a scroll bar
-([method set_scroll_bar]).
+(internal [code]VScrollBar[/code]/[code]HScrollBar[/code] children, shown when the content
+overflows by default — see the [b]Scrollbar[/b] properties).
 
 Run the [b]recycler_demo[/b] scene ([code]res://recycler_demo.tscn[/code]) for a working
 example.</description>
@@ -105,9 +106,15 @@ Control resources held by the RecyclerView.</description>
 			<return type="Recycler" />
 			<description>Returns the internal [b]Recycler[/b] that holds cached and pooled ViewHolders.</description>
 		</method>
-		<method name="get_scroll_bar" qualifiers="const">
-			<return type="RecyclerViewScrollBar" />
-			<description>Returns the current scroll bar, or an invalid Ref when none is set.</description>
+		<method name="get_h_scroll_bar" qualifiers="const">
+			<return type="HScrollBar" />
+			<description>Returns the internal horizontal scroll bar (always present; hidden unless a horizontal
+layout overflows). Style it with [method Control.add_theme_stylebox_override].</description>
+		</method>
+		<method name="get_v_scroll_bar" qualifiers="const">
+			<return type="VScrollBar" />
+			<description>Returns the internal vertical scroll bar (always present; hidden unless a vertical
+layout overflows). Style it with [method Control.add_theme_stylebox_override].</description>
 		</method>
 		<method name="get_scroll_offset" qualifiers="const">
 			<return type="int" />
@@ -247,12 +254,34 @@ scrolled (0 when already at a boundary) and dispatches [method ScrollListener._o
 			<param index="0" name="enabled" type="bool" />
 			<description>Enables or disables prefetching (on by default). Prefetch pre-creates holders just ahead of the viewport to smooth scrolling.</description>
 		</method>
-		<method name="set_scroll_bar">
+		<method name="set_horizontal_scroll_mode">
 			<return type="void" />
-			<param index="0" name="bar" type="RecyclerViewScrollBar" />
-			<description>Sets the scroll bar ([b]RecyclerViewScrollBar[/b]) and binds it as a child Control.
-Pass [code]null[/code] to remove it. The bar is pinned to the trailing edge and
-auto-selects its axis from the layout direction.</description>
+			<param index="0" name="mode" type="int" />
+			<description>Sets how the horizontal scroll bar is shown (a horizontal layout's bar; the
+[code]horizontal_scroll_mode[/code] property). One of [code]RecyclerView.SCROLL_MODE_OVERLAY[/code]
+(default; drawn over the items, shown only when the content overflows),
+[code]SCROLL_MODE_INSET[/code] (pushes the content aside while shown, following the overflow
+like Overlay), [code]SCROLL_MODE_RESERVE[/code] (always pushes the content aside — the bar's
+space stays reserved even when the content fits and the bar is hidden) or
+[code]SCROLL_MODE_NEVER_SHOW[/code] (never shown; the RV still scrolls).</description>
+		</method>
+		<method name="set_h_scroll">
+			<return type="void" />
+			<param index="0" name="pos" type="int" />
+			<description>Sets the horizontal scroll offset (the [code]scroll_horizontal[/code] property); alias of
+[method set_scroll_offset_horizontal].</description>
+		</method>
+		<method name="set_v_scroll">
+			<return type="void" />
+			<param index="0" name="pos" type="int" />
+			<description>Sets the vertical scroll offset (the [code]scroll_vertical[/code] property); alias of
+[method set_scroll_offset].</description>
+		</method>
+		<method name="set_vertical_scroll_mode">
+			<return type="void" />
+			<param index="0" name="mode" type="int" />
+			<description>Sets how the vertical scroll bar is shown (a vertical layout's bar; the
+[code]vertical_scroll_mode[/code] property). See [method set_horizontal_scroll_mode] for the modes.</description>
 		</method>
 		<method name="set_scroll_offset">
 			<return type="void" />
@@ -296,13 +325,33 @@ the bottom of a chat list.</description>
 		<member name="item_extent" type="int" setter="set_item_extent" getter="get_default_item_extent" default="64">Default item extent along the scroll axis (used when the adapter does not override per-item extents). With [member auto_measure_items] enabled this becomes the estimate for items that have not been measured yet.</member>
 		<member name="auto_measure_items" type="bool" setter="set_auto_measure_items" getter="get_auto_measure_items" default="false">When enabled, each item's extent along the scroll axis is measured from the item control itself instead of the static item extent. The root control's combined minimum size decides the slot (Android's wrap_content), clamped by its combined maximum size when one is declared ([code]custom_maximum_size[/code] or a script [code]_get_maximum_size[/code] override), and a root control with [code]SIZE_EXPAND[/code] along the scroll axis fills the viewport (Android's match_parent). Measured extents are cached by position and re-measured after any data change; items that have not been measured yet use [member item_extent] (or [method Adapter._get_item_extent]) as an estimate, so the very first layout of a region can differ from the final one. This makes content-sized items such as a [code]RichTextLabel[/code] with fit_content work out of the box: give the item's root control a content-driven minimum size and enable this. Disabled by default; the static extent path is unchanged while off.</member>
 		<member name="layout" type="LayoutManager" setter="set_layout" getter="get_layout">The layout manager that positions items.</member>
-		<member name="scroll_bar_auto_hide" type="bool" setter="set_scroll_bar_auto_hide" getter="get_scroll_bar_auto_hide" default="true">Whether the scroll bar fades out when idle.</member>
-		<member name="scroll_bar_hide_delay" type="float" setter="set_scroll_bar_hide_delay" getter="get_scroll_bar_hide_delay" default="0.5">Seconds the scroll bar stays visible after the last activity.</member>
+		<member name="scroll_horizontal" type="int" setter="set_h_scroll" getter="get_h_scroll">The current horizontal scroll offset in pixels (0 = content start).</member>
+		<member name="scroll_vertical" type="int" setter="set_v_scroll" getter="get_v_scroll">The current vertical scroll offset in pixels (0 = content start).</member>
+		<member name="scroll_horizontal_custom_step" type="float" setter="set_horizontal_custom_step" getter="get_horizontal_custom_step" default="-1.0">Pixel step for the horizontal scroll bar's wheel/arrow/click interactions
+([code]-1[/code] = the bar's default step; the thumb drag itself is ratio-mapped, not stepped).</member>
+		<member name="scroll_vertical_custom_step" type="float" setter="set_vertical_custom_step" getter="get_vertical_custom_step" default="-1.0">Pixel step for the vertical scroll bar's wheel/arrow/click interactions
+([code]-1[/code] = the bar's default step; the thumb drag itself is ratio-mapped, not stepped).</member>
+		<member name="horizontal_scroll_mode" type="int" setter="set_horizontal_scroll_mode" getter="get_horizontal_scroll_mode" default="1">Scroll bar mode for horizontal layouts (see [method set_horizontal_scroll_mode]).</member>
+		<member name="vertical_scroll_mode" type="int" setter="set_vertical_scroll_mode" getter="get_vertical_scroll_mode" default="1">Scroll bar mode for vertical layouts (see [method set_vertical_scroll_mode]).</member>
+		<member name="scroll_bar_auto_hide" type="bool" setter="set_scroll_bar_auto_hide" getter="get_scroll_bar_auto_hide" default="true">Whether the scroll bar fades out while the RV sits idle (Android-style). Only
+It applies to every mode that shows a bar (Inset/Reserve keep their carved space
+either way).</member>
+		<member name="scroll_bar_hide_delay" type="float" setter="set_scroll_bar_hide_delay" getter="get_scroll_bar_hide_delay" default="0.5">Seconds the scroll bar stays visible after the last activity before auto-hiding.</member>
 		<member name="vertical_wheel_scrolls_horizontal" type="bool" setter="set_vertical_wheel_scrolls_horizontal" getter="get_vertical_wheel_scrolls_horizontal" default="true">Whether a vertical wheel scroll drives horizontal scrolling on horizontal layouts.</member>
 	</members>
 	<constants>
 		<constant name="SCROLL_STATE_IDLE" value="0" enum="ScrollState">The list is not scrolling.</constant>
 		<constant name="SCROLL_STATE_DRAGGING" value="1" enum="ScrollState">The list is being dragged by the user.</constant>
 		<constant name="SCROLL_STATE_SETTLING" value="2" enum="ScrollState">The list is settling after a fling or programmatic scroll.</constant>
+		<constant name="SCROLL_MODE_OVERLAY" value="0" enum="ScrollMode">The bar is drawn over the items (no space taken) and shown only when the
+content overflows the viewport (default).</constant>
+		<constant name="SCROLL_MODE_INSET" value="1" enum="ScrollMode">The bar pushes the content aside (items are laid out clear of the bar) while
+it is shown; shown only when the content overflows, and the content grows back
+to full width when the bar hides.</constant>
+		<constant name="SCROLL_MODE_RESERVE" value="2" enum="ScrollMode">The bar always reserves its space: the viewport shrinks by the bar's
+thickness even when the content fits and the bar is hidden, so the layout
+never shifts when content grows past the viewport. The bar is shown only when
+the content overflows.</constant>
+		<constant name="SCROLL_MODE_NEVER_SHOW" value="3" enum="ScrollMode">The scroll bar is never shown, but the RV still scrolls.</constant>
 	</constants>
 </class>
