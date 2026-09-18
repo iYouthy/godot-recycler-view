@@ -10,6 +10,13 @@ on:
   pull_request:
   merge_group:
 
+env:
+  # Pinned so a Godot release cannot silently change what CI tests against.
+  # Keep in step with project/project.godot's config/features.
+  GODOT_VERSION: "4.7.2"
+  # Pinned for the same reason: scons is a build input, not a detail.
+  SCONS_VERSION: "4.4.0"
+
 jobs:
   build:
     strategy:
@@ -34,15 +41,11 @@ jobs:
         with:
           submodules: true
 
-      # Lint
-      #- name: Setup clang-format
-      #  shell: bash
-      #  run: |
-      #    python -m pip install clang-format
-      #- name: Run clang-format
-      #  shell: bash
-      #  run: |
-      #    clang-format src/** --dry-run --Werror
+      # No clang-format gate on purpose. .clang-format sets ColumnLimit: 0,
+      # which tells the formatter to never wrap — so every violation it reports
+      # here is a hand-wrapped condition it wants to join back into one long
+      # line. Enforcing it would make the code worse, not tidier; a real column
+      # limit would reflow ~700-2000 lines. Formatting stays the author's call.
 
       # Add linux x86_32 toolchain
       - name: Install multilib support
@@ -56,6 +59,7 @@ jobs:
         with:
           platform: ${{ matrix.target.platform }}
           em-version: 3.1.62
+          scons-version: ${{ env.SCONS_VERSION }}
 
       # Build GDExtension (with caches)
 
@@ -89,6 +93,64 @@ jobs:
         with:
           name: godot-recycler-view-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.target.float-precision }}-${{ matrix.target-type }}
           path: ${{ github.workspace }}/project/bin/${{ matrix.target.platform }}/**
+
+  # The build matrix above proves the library still *compiles*. Nothing there
+  # proves it still *behaves* — before this job existed, the 246 behaviour tests
+  # and 137 algorithm tests only ever ran on a developer's machine.
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup godot-cpp
+        uses: ./godot-cpp/.github/actions/setup-godot-cpp
+        with:
+          platform: linux
+          scons-version: ${{ env.SCONS_VERSION }}
+
+      # Pure-algorithm tests: a plain binary, no engine and no display. SConstruct
+      # generates godot-cpp's bindings first when they are missing, so this works
+      # on a fresh checkout.
+      - name: Algorithm tests (doctest)
+        run: |
+          scons tests=yes
+          ./tests/bin/test_runner
+
+      # gdUnit4 drives real scenes, so it needs the extension built for this
+      # platform and an engine binary to load it.
+      - name: Build the extension for the demo project
+        run: scons target=template_debug platform=linux arch=x86_64 precision=single
+
+      - name: Fetch Godot
+        run: |
+          mkdir -p .tools
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          mv "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" .tools/godot
+          chmod +x .tools/godot
+          .tools/godot --version
+
+      # A fresh checkout has no .godot/ (gitignored), so Godot has never built
+      # its global script-class cache — and gdUnit4's entry script resolves its
+      # runner by class_name, which that cache is what makes visible. Without
+      # this step the run dies on "Could not find type GdUnitTestCIRunner".
+      # Importing the project is what builds the cache; it also imports the demo
+      # assets the scene tests load.
+      - name: Import the project
+        run: .tools/godot --headless --path project --import
+
+      # --ignoreHeadlessMode: these suites push input events through the
+      # viewport directly, so they run fine without a display. gdUnit4 exits
+      # 100 on failure, 0 on success — the exit code is the gate.
+      - name: Behaviour tests (gdUnit4)
+        run: |
+          .tools/godot --headless --path project \
+            -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
+            -a res://test --ignoreHeadlessMode
 
   # Merges every per-platform artifact into a single installable package and adds
   # the .gdextension descriptor (which references each platform binary in a sibling folder).
